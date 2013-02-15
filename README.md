@@ -49,3 +49,9 @@ If a websocket backend is given, it will be used if the browser supports it:
 
 The http fallback will be used when the browser is not WebSocket capable, but NOT when the
 websocket fails to connect.
+
+
+Test
+----
+
+The test-file is supposed to be run with JsTestDriver.
