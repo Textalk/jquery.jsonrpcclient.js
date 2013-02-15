@@ -36,6 +36,10 @@ Example:
 Each result will be paired with it's own callback.  The callback in endBatch is called when all
 other callbacks are done.
 
+
+WebSocket
+---------
+
 If a websocket backend is given, it will be used if the browser supports it:
 
     var foo = new $.JRPCClient({ http: '/backend/jsonrpc', ws: 'ws://example.com/' });
