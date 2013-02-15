@@ -13,7 +13,7 @@ Usage example:
     foo.call(
       'bar', [ 'A parameter', 'B parameter' ],
       function(result) { alert('Foo bar answered: ' + result.my_answer); },
-      functoin(error)  { console.log('There was an error', error); }
+      function(error)  { console.log('There was an error', error); }
     );
 
 
