@@ -30,18 +30,40 @@
    * @todo Take an existing ws_socket.
    */
   $.JRPCClient = function(options) {
+    var self = this;
     this.options = $.extend({
       http         : null,
       ws           : null,
       ws_onmessage : null, ///< Other onmessage-handler.
-      ws_getsocket : function(url) { return new WebSocket(url); }
+      ws_getsocket : function(onmessage_cb) { return self._ws_getsocket(onmessage_cb); }
     }, options);
+
+    // Declare an instance version of the onmessage callback to wrap 'this'.
+    this.wsOnMessage = function(event) { self._wsOnMessage(event); };
   };
 
   $.JRPCClient.prototype._ws_socket     = null;
   $.JRPCClient.prototype._ws_callbacks  = {};   ///< Object  <id>: { success_cb: cb, error_cb: cb }
   $.JRPCClient.prototype._current_id    = 1;
   $.JRPCClient.prototype._batch         = null; ///< When storing batch calls, this is non-null.
+
+  /**
+   * The default ws_getsocket handler.
+   */
+  $.JRPCClient.prototype._ws_getsocket = function(onmessage_cb) {
+    // If there is no ws url set, we don't have a socket. Likewise, if there is no window.WebSocket.
+    if (this.options.ws === null || !("WebSocket" in window)) return null;
+
+    if (this._ws_socket === null || this._ws_socket.readyState > 1) {
+      // We have no active websocket.
+      this._ws_socket = new WebSocket(this.options.ws);
+
+      // Set up onmessage handler.
+      this._ws_socket.onmessage = onmessage_cb;
+    }
+
+    return this._ws_socket;
+  };
 
   /**
    * @fn call
@@ -62,8 +84,9 @@
     };
 
     // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
-    if (this.options.ws !== null && "WebSocket" in window) {
-      this._wsCall(request, success_cb, error_cb);
+    var socket = this.options.ws_getsocket(this.wsOnMessage);
+    if (socket !== null) {
+      this._wsCall(socket, request, success_cb, error_cb);
       return;
     }
 
@@ -130,8 +153,9 @@
     };
  
     // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
-    if (this.options.ws !== null && "WebSocket" in window) {
-      this._wsCall(request);
+    var socket = this.options.ws_getsocket(this.wsOnMessage);
+    if (socket !== null) {
+      this._wsCall(socket, request);
       return;
     }
 
@@ -259,35 +283,23 @@
   /**
    * Internal handler to dispatch a JRON-RPC request through a websocket.
    */
-  $.JRPCClient.prototype._wsCall = function(request, success_cb, error_cb) {
+  $.JRPCClient.prototype._wsCall = function(socket, request, success_cb, error_cb) {
     var request_json = $.toJSON(request);
 
-    if (this._ws_socket === null || this._ws_socket.readyState != 1) {
-      // We have no active websocket.
-
-      if (this._ws_socket === null || this._ws_socket.readyState > 1) {
-        // No websocket or websocket is closing/closed.  Make a new one.
-        this._ws_socket = this.options.ws_getsocket(this.options.ws);
-      }
-
+    if (socket.readyState < 1) {
+      // The websocket is not open yet; we have to set sending of the message in onopen.
       self = this; // In closure below, this is set to the WebSocket.  Use self instead.
 
       // Set up sending of message for when the socket is open.
-      this._ws_socket.onopen = function() {
-        // Set up onmessage handler.
-        /// @todo Check if there already is an onmessage handler and chain it.
-        self._ws_socket.onmessage = function(event) {
-          // Making closure to get correct 'this'.
-          self._wsOnMessage(event);
-        };
+      socket.onopen = function() {
 
         // Send the request.
-        self._ws_socket.send(request_json);
+        socket.send(request_json);
       };
     }
     else {
       // We have a socket and it should be ready to send on.
-      this._ws_socket.send(request_json);
+      socket.send(request_json);
     }
 
     // Setup callbacks.  If there is an id, this is a call and not a notify.
