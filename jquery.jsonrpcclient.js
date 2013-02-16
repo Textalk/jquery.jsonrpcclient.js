@@ -25,6 +25,7 @@
    *                http         A url (relative or absolute) to a http(s) backend.
    *                ws           A url (relative of absolute) to a ws(s) backend.
    *                ws_onmessage A socket message handler for other messages (non-responses).
+   *                ws_getsocket A function returning a WebSocket or similar.
    *
    * @todo Take an existing ws_socket.
    */
@@ -32,7 +33,8 @@
     this.options = $.extend({
       http         : null,
       ws           : null,
-      ws_onmessage : null  ///< Other onmessage-handler.
+      ws_onmessage : null, ///< Other onmessage-handler.
+      ws_getsocket : function(url) { return new WebSocket(url); }
     }, options);
   };
 
@@ -265,7 +267,7 @@
 
       if (this._ws_socket === null || this._ws_socket.readyState > 1) {
         // No websocket or websocket is closing/closed.  Make a new one.
-        this._ws_socket = new WebSocket(this.options.ws);
+        this._ws_socket = this.options.ws_getsocket(this.options.ws);
       }
 
       self = this; // In closure below, this is set to the WebSocket.  Use self instead.
