@@ -21,30 +21,23 @@
    * @fn new
    * @memberof $.JRPCClient
    *
-   * @param params An object stating the backends:
-   *               http         A url (relative or absolute) to a http(s) backend.
-   *               ws           A url (relative of absolute) to a ws(s) backend.
-   *               ws_onmessage A socket message handler for other messages (non-responses).
+   * @param options An object stating the backends:
+   *                http         A url (relative or absolute) to a http(s) backend.
+   *                ws           A url (relative of absolute) to a ws(s) backend.
+   *                ws_onmessage A socket message handler for other messages (non-responses).
    *
    * @todo Take an existing ws_socket.
    */
-  $.JRPCClient = function(params) {
-    if ('http' in params) {
-      this._http_endpoint = params.http;
-    }
-    if ('ws' in params) {
-      this._ws_endpoint = params.ws;
-    }
-    if ('ws_onmessage' in params) {
-      this._ws_onmessage = params.ws_onmessage;
-    }
+  $.JRPCClient = function(options) {
+    this.options = $.extend({
+      http         : null,
+      ws           : null,
+      ws_onmessage : null  ///< Other onmessage-handler.
+    }, options);
   };
 
-  $.JRPCClient.prototype._http_endpoint = null;
-  $.JRPCClient.prototype._ws_endpoint   = null;
   $.JRPCClient.prototype._ws_socket     = null;
   $.JRPCClient.prototype._ws_callbacks  = {};   ///< Object  <id>: { success_cb: cb, error_cb: cb }
-  $.JRPCClient.prototype._ws_onmessage  = null; ///< Other onmessage-handler.
   $.JRPCClient.prototype._current_id    = 1;
   $.JRPCClient.prototype._batch         = null; ///< When storing batch calls, this is non-null.
 
@@ -67,7 +60,7 @@
     };
 
     // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
-    if (this._ws_endpoint !== null && "WebSocket" in window) {
+    if (this.options.ws !== null && "WebSocket" in window) {
       this._wsCall(request, success_cb, error_cb);
       return;
     }
@@ -83,13 +76,13 @@
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
-    if (this._http_endpoint === null) {
+    if (this.options.http === null) {
       throw "$.JRPCClient.call used with no websocket and no http endpoint.";
     }
 
     $.ajax({
       type     : 'POST',
-      url      : this._http_endpoint,
+      url      : this.options.http,
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false,
@@ -135,7 +128,7 @@
     };
  
     // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
-    if (this._ws_endpoint !== null && "WebSocket" in window) {
+    if (this.options.ws !== null && "WebSocket" in window) {
       this._wsCall(request);
       return;
     }
@@ -147,13 +140,13 @@
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
-    if (this._http_endpoint === null) {
+    if (this.options.http === null) {
       throw "$.JRPCClient.notify used with no websocket and no http endpoint.";
     }
 
     $.ajax({
       type     : 'POST',
-      url      : this._http_endpoint,
+      url      : this.options.http,
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false
@@ -219,7 +212,7 @@
  
     // Send request
     $.ajax({
-      url      : this._http_endpoint,
+      url      : this.options.http,
       data     : $.toJSON(batch_request),
       dataType : 'json',
       cache    : false,
@@ -272,7 +265,7 @@
 
       if (this._ws_socket === null || this._ws_socket.readyState > 1) {
         // No websocket or websocket is closing/closed.  Make a new one.
-        this._ws_socket = new WebSocket(this._ws_endpoint);
+        this._ws_socket = new WebSocket(this.options.ws);
       }
 
       self = this; // In closure below, this is set to the WebSocket.  Use self instead.
@@ -354,8 +347,8 @@
     }
 
     // This is not a JSON-RPC response.  Call the fallback message handler, if given.
-    if (typeof this._ws_onmessage === 'function') {
-      this._ws_onmessage(event);
+    if (typeof this.options.ws_onmessage === 'function') {
+      this.options.ws_onmessage(event);
     }
   };
 })(jQuery);
