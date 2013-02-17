@@ -26,6 +26,9 @@
    *                ws           A url (relative of absolute) to a ws(s) backend.
    *                ws_onmessage A socket message handler for other messages (non-responses).
    *                ws_getsocket A function returning a WebSocket or similar.
+   *                             It must take an onmessage_cb and bind it to the onmessage event
+   *                             (or chain it before/after some other onmessage handler).
+   *                             Or, it could return null if no socket is available.
    *
    * @todo Take an existing ws_socket.
    */
@@ -33,7 +36,7 @@
     var self = this;
     this.options = $.extend({
       http         : null,
-      ws           : null,
+      ws           : null, ///< The ws-url for default ws_getsocket.
       ws_onmessage : null, ///< Other onmessage-handler.
       ws_getsocket : function(onmessage_cb) { return self._ws_getsocket(onmessage_cb); }
     }, options);
@@ -42,28 +45,10 @@
     this.wsOnMessage = function(event) { self._wsOnMessage(event); };
   };
 
-  $.JRPCClient.prototype._ws_socket     = null;
+  $.JRPCClient.prototype._ws_socket     = null; ///< Holding the WebSocket on default getsocket.
   $.JRPCClient.prototype._ws_callbacks  = {};   ///< Object  <id>: { success_cb: cb, error_cb: cb }
-  $.JRPCClient.prototype._current_id    = 1;
+  $.JRPCClient.prototype._current_id    = 1;    ///< The next JSON-RPC request id.
   $.JRPCClient.prototype._batch         = null; ///< When storing batch calls, this is non-null.
-
-  /**
-   * The default ws_getsocket handler.
-   */
-  $.JRPCClient.prototype._ws_getsocket = function(onmessage_cb) {
-    // If there is no ws url set, we don't have a socket. Likewise, if there is no window.WebSocket.
-    if (this.options.ws === null || !("WebSocket" in window)) return null;
-
-    if (this._ws_socket === null || this._ws_socket.readyState > 1) {
-      // We have no active websocket.
-      this._ws_socket = new WebSocket(this.options.ws);
-
-      // Set up onmessage handler.
-      this._ws_socket.onmessage = onmessage_cb;
-    }
-
-    return this._ws_socket;
-  };
 
   /**
    * @fn call
@@ -281,7 +266,34 @@
   };
 
   /**
+   * The default ws_getsocket handler.
+   *
+   * @param onmessage_cb The callback to be bound to onmessage events on the socket.
+   *
+   * @fn _ws_getsocket
+   * @memberof $.JRPCClient
+   */
+  $.JRPCClient.prototype._ws_getsocket = function(onmessage_cb) {
+    // If there is no ws url set, we don't have a socket.
+    // Likewise, if there is no window.WebSocket.
+    if (this.options.ws === null || !("WebSocket" in window)) return null;
+
+    if (this._ws_socket === null || this._ws_socket.readyState > 1) {
+      // No socket, or dying socket, let's get a new one.
+      this._ws_socket = new WebSocket(this.options.ws);
+
+      // Set up onmessage handler.
+      this._ws_socket.onmessage = onmessage_cb;
+    }
+
+    return this._ws_socket;
+  };
+
+  /**
    * Internal handler to dispatch a JRON-RPC request through a websocket.
+   *
+   * @fn _wsCall
+   * @memberof $.JRPCClient
    */
   $.JRPCClient.prototype._wsCall = function(socket, request, success_cb, error_cb) {
     var request_json = $.toJSON(request);
