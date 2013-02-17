@@ -189,15 +189,14 @@ AsyncTestCase(
       // Test that HTTP will be used when both ws and http is given and there is no
       // window.WebSocket.
 
-      // Save the normal WebSocket, if any.
-      var saved_WebSocket = window.WebSocket;
-
       // Save the normal jQuery.ajax.
       var saved_jquery_ajax = jQuery.ajax;
 
-      var given_ws_url = 'ws://example.com/';
       var given_http_url = '/foz';
-      var test = new $.JRPCClient({ http: given_http_url, ws: given_ws_url });
+      var test = new $.JRPCClient({
+        http: given_http_url,
+        ws_getsocket: function(onmessage_cb) { return null; }
+      });
 
       var result = null;
       var error_cb_called = false;
@@ -205,9 +204,6 @@ AsyncTestCase(
       queue.call(
         'Step 1: register ajax callback.',
         function(callbacks) {
-          // Remove window.WebSocket
-          delete window.WebSocket;
-
           // Replace jQuery.ajax with a mocked function.
           jQuery.ajax = callbacks.add(mock_jquery_ajax);
 
@@ -238,9 +234,52 @@ AsyncTestCase(
 
           // Restore jQuery.ajax
           jQuery.ajax = saved_jquery_ajax;
+        }
+      );
+    },
 
-          // Restore WebSocket
-          window.WebSocket = saved_WebSocket;
+    testDefaultGetsocket: function(queue) {
+      // Test the default ws_getsocket
+      if (!('WebSocket' in window)) {
+        // Skip test on browsers without WebSocket
+        assertTrue('Skipping WebSocket test in this browser.', true);
+        return;
+      }
+
+      var echo_data = null;
+      var other_cb_called = false;
+
+      queue.call(
+        'Setup ws-client and make call',
+        function(callbacks) {
+          // Since the echo-server at echo.websockets.org won't give a correct JSON-RPC response,
+          // we setup anonther onmessage catcher.
+          var other_onmessage = callbacks.add(
+            function(event) {
+              console.log('onmessage.', event.data);
+              echo_data = event.data;
+            }
+          );
+
+          var other_cb = function(data) { other_cb_called = true; console.log('Other cb!', data); };
+
+          var test = new $.JRPCClient({
+            ws: 'ws://echo.websockets.org/',
+            ws_onmessage: other_onmessage
+          });
+
+          console.log('Calling the websocket');
+
+          test.call('foo', [ 'bar' ], other_cb, other_cb);
+        }
+      );
+
+      queue.call(
+        'Assert that onmessage is called and nothing else.',
+        function() {
+          assertFalse('Other callback should not be called.', other_cb_called);
+
+          assertNotNull('Echo-server should return the request data.', echo_data);
         }
       );
     }
