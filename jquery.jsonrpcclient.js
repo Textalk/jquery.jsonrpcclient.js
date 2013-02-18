@@ -304,7 +304,6 @@
 
       // Set up sending of message for when the socket is open.
       socket.onopen = function() {
-
         // Send the request.
         socket.send(request_json);
       };

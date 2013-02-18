@@ -256,21 +256,20 @@ AsyncTestCase(
           // we setup anonther onmessage catcher.
           var other_onmessage = callbacks.add(
             function(event) {
-              console.log('onmessage.', event.data);
               echo_data = event.data;
             }
           );
 
-          var other_cb = function(data) { other_cb_called = true; console.log('Other cb!', data); };
+          var other_cb = function(data) {
+            other_cb_called = true;
+          };
 
           var test = new $.JRPCClient({
-            ws: 'ws://echo.websockets.org/',
+            ws: 'ws://echo.websocket.org/',
             ws_onmessage: other_onmessage
           });
 
-          console.log('Calling the websocket');
-
-          test.call('foo', [ 'bar' ], other_cb, other_cb);
+          test.call('plebb', [ 'bar' ], other_cb, other_cb);
         }
       );
 
