@@ -7,7 +7,7 @@
  *
  * Usage example:
  *
- *   var foo = new $.JRPCClient({ httpUrl: '/backend/jsonrpc' });
+ *   var foo = new $.JRPCClient({ ajaxUrl: '/backend/jsonrpc' });
  *   foo.call(
  *     'bar', [ 'A parameter', 'B parameter' ],
  *     function(result) { alert('Foo bar answered: ' + result.my_answer); },
@@ -22,7 +22,7 @@
    * @memberof $.JRPCClient
    *
    * @param options An object stating the backends:
-   *                httpUrl    A url (relative or absolute) to a http(s) backend.
+   *                ajaxUrl    A url (relative or absolute) to a http(s) backend.
    *                socketUrl  A url (relative of absolute) to a ws(s) backend.
    *                onmessage  A socket message handler for other messages (non-responses).
    *                getSocket  A function returning a WebSocket or null.
@@ -35,7 +35,7 @@
   $.JRPCClient = function(options) {
     var self = this;
     this.options = $.extend({
-      httpUrl     : null,
+      ajaxUrl     : null,
       socketUrl   : null, ///< The ws-url for default getSocket.
       onmessage   : null, ///< Other onmessage-handler.
       getSocket   : function(onmessage_cb) { return self._getSocket(onmessage_cb); }
@@ -86,13 +86,13 @@
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
-    if (this.options.httpUrl === null) {
+    if (this.options.ajaxUrl === null) {
       throw "$.JRPCClient.call used with no websocket and no http endpoint.";
     }
 
     $.ajax({
       type     : 'POST',
-      url      : this.options.httpUrl,
+      url      : this.options.ajaxUrl,
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false,
@@ -151,13 +151,13 @@
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
-    if (this.options.httpUrl === null) {
+    if (this.options.ajaxUrl === null) {
       throw "$.JRPCClient.notify used with no websocket and no http endpoint.";
     }
 
     $.ajax({
       type     : 'POST',
-      url      : this.options.httpUrl,
+      url      : this.options.ajaxUrl,
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false
@@ -223,7 +223,7 @@
  
     // Send request
     $.ajax({
-      url      : this.options.httpUrl,
+      url      : this.options.ajaxUrl,
       data     : $.toJSON(batch_request),
       dataType : 'json',
       cache    : false,

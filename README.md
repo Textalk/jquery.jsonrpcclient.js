@@ -9,7 +9,7 @@ http if not.
 
 Usage example:
 
-    var foo = new $.JRPCClient({ httpUrl: '/backend/jsonrpc' });
+    var foo = new $.JRPCClient({ ajaxUrl: '/backend/jsonrpc' });
     foo.call(
       'bar', [ 'A parameter', 'B parameter' ],
       function(result) { alert('Foo bar answered: ' + result.my_answer); },
@@ -26,7 +26,7 @@ immediately.
 
 Example:
 
-    var foo = new $.JRPCClient({ httpUrl: '/backend/jsonrpc' });
+    var foo = new $.JRPCClient({ ajaxUrl: '/backend/jsonrpc' });
     foo.startBatch();
     foo.call('bar', [ 'A parameter', 'B parameter' ], success_cb1, error_cb1);
     foo.call('baz', { parameters: 'could be object' }, success_cb2, error_cb2);
@@ -42,7 +42,7 @@ WebSocket
 
 If a websocket backend is given, it will be used if the browser supports it:
 
-    var foo = new $.JRPCClient({ httpUrl: '/backend/jsonrpc', socketUrl: 'ws://example.com/' });
+    var foo = new $.JRPCClient({ ajaxUrl: '/backend/jsonrpc', socketUrl: 'ws://example.com/' });
     foo.call('bar', [ 'param' ], success_cb, error_cb);
     --> websocket message: {"jsonrpc":"2.0","method":"bar","params":["param"],"id":3}
 
