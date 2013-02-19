@@ -1,7 +1,7 @@
 TestCase(
   "JRPCClientTest", {
     testNew: function() {
-      var test = new $.JRPCClient({ http: '/foobar1' });
+      var test = new $.JRPCClient({ httpUrl: '/foobar1' });
       assertObject('test should be a new object', test);
     }
   }
@@ -27,7 +27,7 @@ AsyncTestCase(
   'JRPCClientAsyncTest', {
     testBadBackend: function(queue) {
       // Setup a test client with a bad backend
-      var test = new $.JRPCClient({ http: '/foobar2' });
+      var test = new $.JRPCClient({ httpUrl: '/foobar2' });
       var error_cb_called = false;
 
       queue.call(
@@ -55,7 +55,7 @@ AsyncTestCase(
     testBatchErrorInHttp: function(queue) {
       // Test that a non-existing backen gives the overall error_cb, and that the individual
       // callbacks are not called.
-      var test = new $.JRPCClient({ http: '/foobar3' });
+      var test = new $.JRPCClient({ httpUrl: '/foobar3' });
       var main_error_cb_called = false;
       var other_cb_called      = false;
 
@@ -100,7 +100,7 @@ AsyncTestCase(
       var saved_jquery_ajax = jQuery.ajax;
 
       var given_url = '/bazz';
-      var test = new $.JRPCClient({ http: given_url });
+      var test = new $.JRPCClient({ httpUrl: given_url });
 
       var result          = null;
       var error_cb_called = false;
@@ -149,7 +149,7 @@ AsyncTestCase(
       var saved_jquery_ajax = jQuery.ajax;
 
       var given_url = '/bront';
-      var test = new $.JRPCClient({ http: given_url });
+      var test = new $.JRPCClient({ httpUrl: given_url });
 
       var id = null;
       
@@ -194,8 +194,8 @@ AsyncTestCase(
 
       var given_http_url = '/foz';
       var test = new $.JRPCClient({
-        http: given_http_url,
-        ws_getsocket: function(onmessage_cb) { return null; }
+        httpUrl: given_http_url,
+        getSocket: function(onmessage_cb) { return null; }
       });
 
       var result = null;
@@ -265,8 +265,8 @@ AsyncTestCase(
           };
 
           var test = new $.JRPCClient({
-            ws: 'ws://echo.websocket.org/',
-            ws_onmessage: other_onmessage
+            socketUrl: 'ws://echo.websocket.org/',
+            onmessage: other_onmessage
           });
 
           test.call('plebb', [ 'bar' ], other_cb, other_cb);

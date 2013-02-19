@@ -7,7 +7,7 @@
  *
  * Usage example:
  *
- *   var foo = new $.JRPCClient({ http: '/backend/jsonrpc' });
+ *   var foo = new $.JRPCClient({ httpUrl: '/backend/jsonrpc' });
  *   foo.call(
  *     'bar', [ 'A parameter', 'B parameter' ],
  *     function(result) { alert('Foo bar answered: ' + result.my_answer); },
@@ -22,23 +22,23 @@
    * @memberof $.JRPCClient
    *
    * @param options An object stating the backends:
-   *                http         A url (relative or absolute) to a http(s) backend.
-   *                ws           A url (relative of absolute) to a ws(s) backend.
-   *                ws_onmessage A socket message handler for other messages (non-responses).
-   *                ws_getsocket A function returning a WebSocket or similar.
-   *                             It must take an onmessage_cb and bind it to the onmessage event
-   *                             (or chain it before/after some other onmessage handler).
-   *                             Or, it could return null if no socket is available.
-   *
-   * @todo Take an existing ws_socket.
+   *                httpUrl    A url (relative or absolute) to a http(s) backend.
+   *                socketUrl  A url (relative of absolute) to a ws(s) backend.
+   *                onmessage  A socket message handler for other messages (non-responses).
+   *                getSocket  A function returning a WebSocket or null.
+   *                           It must take an onmessage_cb and bind it to the onmessage event
+   *                           (or chain it before/after some other onmessage handler).
+   *                           Or, it could return null if no socket is available.
+   *                           The returned instance must have readyState <= 1, and if less than 1,
+   *                           react to onopen binding.
    */
   $.JRPCClient = function(options) {
     var self = this;
     this.options = $.extend({
-      http         : null,
-      ws           : null, ///< The ws-url for default ws_getsocket.
-      ws_onmessage : null, ///< Other onmessage-handler.
-      ws_getsocket : function(onmessage_cb) { return self._ws_getsocket(onmessage_cb); }
+      httpUrl     : null,
+      socketUrl   : null, ///< The ws-url for default getSocket.
+      onmessage   : null, ///< Other onmessage-handler.
+      getSocket   : function(onmessage_cb) { return self._getSocket(onmessage_cb); }
     }, options);
 
     // Declare an instance version of the onmessage callback to wrap 'this'.
@@ -69,7 +69,7 @@
     };
 
     // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
-    var socket = this.options.ws_getsocket(this.wsOnMessage);
+    var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
       this._wsCall(socket, request, success_cb, error_cb);
       return;
@@ -86,13 +86,13 @@
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
-    if (this.options.http === null) {
+    if (this.options.httpUrl === null) {
       throw "$.JRPCClient.call used with no websocket and no http endpoint.";
     }
 
     $.ajax({
       type     : 'POST',
-      url      : this.options.http,
+      url      : this.options.httpUrl,
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false,
@@ -138,7 +138,7 @@
     };
  
     // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
-    var socket = this.options.ws_getsocket(this.wsOnMessage);
+    var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
       this._wsCall(socket, request);
       return;
@@ -151,13 +151,13 @@
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
-    if (this.options.http === null) {
+    if (this.options.httpUrl === null) {
       throw "$.JRPCClient.notify used with no websocket and no http endpoint.";
     }
 
     $.ajax({
       type     : 'POST',
-      url      : this.options.http,
+      url      : this.options.httpUrl,
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false
@@ -223,7 +223,7 @@
  
     // Send request
     $.ajax({
-      url      : this.options.http,
+      url      : this.options.httpUrl,
       data     : $.toJSON(batch_request),
       dataType : 'json',
       cache    : false,
@@ -266,21 +266,21 @@
   };
 
   /**
-   * The default ws_getsocket handler.
+   * The default getSocket handler.
    *
    * @param onmessage_cb The callback to be bound to onmessage events on the socket.
    *
-   * @fn _ws_getsocket
+   * @fn _getSocket
    * @memberof $.JRPCClient
    */
-  $.JRPCClient.prototype._ws_getsocket = function(onmessage_cb) {
+  $.JRPCClient.prototype._getSocket = function(onmessage_cb) {
     // If there is no ws url set, we don't have a socket.
     // Likewise, if there is no window.WebSocket.
-    if (this.options.ws === null || !("WebSocket" in window)) return null;
+    if (this.options.socketUrl === null || !("WebSocket" in window)) return null;
 
     if (this._ws_socket === null || this._ws_socket.readyState > 1) {
       // No socket, or dying socket, let's get a new one.
-      this._ws_socket = new WebSocket(this.options.ws);
+      this._ws_socket = new WebSocket(this.options.socketUrl);
 
       // Set up onmessage handler.
       this._ws_socket.onmessage = onmessage_cb;
@@ -372,8 +372,8 @@
     }
 
     // This is not a JSON-RPC response.  Call the fallback message handler, if given.
-    if (typeof this.options.ws_onmessage === 'function') {
-      this.options.ws_onmessage(event);
+    if (typeof this.options.onmessage === 'function') {
+      this.options.onmessage(event);
     }
   };
 })(jQuery);
