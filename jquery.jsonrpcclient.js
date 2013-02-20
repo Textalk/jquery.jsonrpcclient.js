@@ -7,7 +7,7 @@
  *
  * Usage example:
  *
- *   var foo = new $.JRPCClient({ ajaxUrl: '/backend/jsonrpc' });
+ *   var foo = new $.JsonRpcClient({ ajaxUrl: '/backend/jsonrpc' });
  *   foo.call(
  *     'bar', [ 'A parameter', 'B parameter' ],
  *     function(result) { alert('Foo bar answered: ' + result.my_answer); },
@@ -19,7 +19,7 @@
 (function($) {
   /**
    * @fn new
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    *
    * @param options An object stating the backends:
    *                ajaxUrl    A url (relative or absolute) to a http(s) backend.
@@ -32,7 +32,7 @@
    *                           The returned instance must have readyState <= 1, and if less than 1,
    *                           react to onopen binding.
    */
-  $.JRPCClient = function(options) {
+  $.JsonRpcClient = function(options) {
     var self = this;
     this.options = $.extend({
       ajaxUrl     : null,
@@ -45,21 +45,28 @@
     this.wsOnMessage = function(event) { self._wsOnMessage(event); };
   };
 
-  $.JRPCClient.prototype._ws_socket     = null; ///< Holding the WebSocket on default getsocket.
-  $.JRPCClient.prototype._ws_callbacks  = {};   ///< Object  <id>: { success_cb: cb, error_cb: cb }
-  $.JRPCClient.prototype._current_id    = 1;    ///< The next JSON-RPC request id.
-  $.JRPCClient.prototype._batch         = null; ///< When storing batch calls, this is non-null.
+  /// Holding the WebSocket on default getsocket.
+  $.JsonRpcClient.prototype._ws_socket = null;
+
+  /// Object <id>: { success_cb: cb, error_cb: cb }
+  $.JsonRpcClient.prototype._ws_callbacks = {};
+
+  /// The next JSON-RPC request id.
+  $.JsonRpcClient.prototype._current_id = 1;
+
+  /// When storing batch calls, this is non-null.
+  $.JsonRpcClient.prototype._batch = null;
 
   /**
    * @fn call
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    *
    * @param method     The method to run on JSON-RPC server.
    * @param params     The params; an array or object.
    * @param success_cb A callback for successful request.
    * @param error_cb   A callback for error.
    */
-  $.JRPCClient.prototype.call = function(method, params, success_cb, error_cb) {
+  $.JsonRpcClient.prototype.call = function(method, params, success_cb, error_cb) {
     // Construct the JSON-RPC 2.0 request.
     var request = {
       jsonrpc : '2.0',
@@ -87,7 +94,7 @@
 
     // No WebSocket, and no HTTP backend?  This won't work.
     if (this.options.ajaxUrl === null) {
-      throw "$.JRPCClient.call used with no websocket and no http endpoint.";
+      throw "$.JsonRpcClient.call used with no websocket and no http endpoint.";
     }
 
     $.ajax({
@@ -96,12 +103,12 @@
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false,
-      
+
       success  : function(data) {
         if ('error' in data) error_cb(data.error);
         success_cb(data.result);
       },
-      
+
       // JSON-RPC Server could return non-200 on error
       error    : function(jqXHR, textStatus, errorThrown) {
         try {
@@ -116,7 +123,7 @@
       }
     });
   };
-  
+
   /**
    * Notify sends a command to the server that won't need a response.  In http, there is probably
    * an empty response - that will be dropped, but in ws there should be no response at all.
@@ -124,19 +131,19 @@
    * This is very similar to call, but has no id and no handling of callbacks.
    *
    * @fn notify
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    *
    * @param method     The method to run on JSON-RPC server.
    * @param params     The params; an array or object.
    */
-  $.JRPCClient.prototype.notify = function(method, params) {
+  $.JsonRpcClient.prototype.notify = function(method, params) {
     // Construct the JSON-RPC 2.0 request.
     var request = {
       jsonrpc: '2.0',
       method:  method,
       params:  params
     };
- 
+
     // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
     var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
@@ -152,7 +159,7 @@
 
     // No WebSocket, and no HTTP backend?  This won't work.
     if (this.options.ajaxUrl === null) {
-      throw "$.JRPCClient.notify used with no websocket and no http endpoint.";
+      throw "$.JsonRpcClient.notify used with no websocket and no http endpoint.";
     }
 
     $.ajax({
@@ -170,9 +177,9 @@
    * is called.
    *
    * @fn startBatch
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    */
-  $.JRPCClient.prototype.startBatch = function() {
+  $.JsonRpcClient.prototype.startBatch = function() {
     if (this._batch === null) {
       this._batch = [];
     }
@@ -182,36 +189,36 @@
    * Call this to execute all stored batch calls and end the batching.  All separate calls have
    * their own callbacks executed.  Note that the results can be handled in another order than
    * they were put in.
-   * 
+   *
    * @fn endBatch
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    *
    * @param all_done_cb A callback function to call after all results have been handled.
    * @parma error_cb    A callback function to call if there is an error from the server.
    *                    Note, that batch calls should always get an overall success, and the
-   *                    only error 
+   *                    only error
    */
-  $.JRPCClient.prototype.endBatch = function(all_done_cb, error_cb) {
+  $.JsonRpcClient.prototype.endBatch = function(all_done_cb, error_cb) {
     var self = this;
- 
+
     // No batch?
     if (this._batch === null) return;
- 
+
     // Copy the batch and reset it, to avoid race conditions.
     var batch = this._batch;
     this._batch = null;
- 
+
     // Empty batch?
     if (batch.length === 0) return;
- 
+
     // Collect all request data and sort handlers by request id.
     var batch_request = [];
     var handlers = {};
- 
+
     for (var i in batch) {
       var call = batch[i];
       batch_request.push(call.request);
- 
+
       // If the request has an id, it should handle returns
       if ('id' in call.request) {
         handlers[call.request.id] = {
@@ -220,7 +227,7 @@
         };
       }
     }
- 
+
     // Send request
     $.ajax({
       url      : this.options.ajaxUrl,
@@ -228,7 +235,7 @@
       dataType : 'json',
       cache    : false,
       type     : 'POST',
- 
+
       // Batch-requests should always return 200
       error    : function(jqXHR, textStatus, errorThrown) {
         if (typeof error_cb === 'function') error_cb(jqXHR, textStatus, errorThrown);
@@ -241,12 +248,12 @@
    * Internal helper to match the result array from a batch call to their respective callbacks.
    *
    * @fn _batchCb
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    */
-  $.JRPCClient.prototype._batchCb = function(result, handlers, all_done_cb) {
+  $.JsonRpcClient.prototype._batchCb = function(result, handlers, all_done_cb) {
     for (var i in result) {
       var response = result[i];
- 
+
       // Handle error
       if ('error' in response) {
         if (response.id === null || response.id in handlers) {
@@ -261,7 +268,7 @@
         else handlers[response.id].success_cb(response.result);
       }
     }
- 
+
     if (typeof all_done_cb === 'function') all_done_cb(result);
   };
 
@@ -271,9 +278,9 @@
    * @param onmessage_cb The callback to be bound to onmessage events on the socket.
    *
    * @fn _getSocket
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    */
-  $.JRPCClient.prototype._getSocket = function(onmessage_cb) {
+  $.JsonRpcClient.prototype._getSocket = function(onmessage_cb) {
     // If there is no ws url set, we don't have a socket.
     // Likewise, if there is no window.WebSocket.
     if (this.options.socketUrl === null || !("WebSocket" in window)) return null;
@@ -293,9 +300,9 @@
    * Internal handler to dispatch a JRON-RPC request through a websocket.
    *
    * @fn _wsCall
-   * @memberof $.JRPCClient
+   * @memberof $.JsonRpcClient
    */
-  $.JRPCClient.prototype._wsCall = function(socket, request, success_cb, error_cb) {
+  $.JsonRpcClient.prototype._wsCall = function(socket, request, success_cb, error_cb) {
     var request_json = $.toJSON(request);
 
     if (socket.readyState < 1) {
@@ -326,7 +333,7 @@
    *
    * @param event The websocket onmessage-event.
    */
-  $.JRPCClient.prototype._wsOnMessage = function(event) {
+  $.JsonRpcClient.prototype._wsOnMessage = function(event) {
     // Check if this could be a JSON RPC message.
     try {
       var response = $.parseJSON(event.data);
@@ -343,10 +350,10 @@
         if ('result' in response && this._ws_callbacks[response.id]) {
           // Get the success callback.
           var success_cb = this._ws_callbacks[response.id].success_cb;
-          
+
           // Delete the callback from the storage.
           delete this._ws_callbacks[response.id];
-          
+
           // Run callback with result as parameter.
           success_cb(response.result);
           return;
@@ -356,10 +363,10 @@
         else if ('error' in response && this._ws_callbacks[response.id]) {
           // Get the error callback.
           var error_cb = this._ws_callbacks[response.id].error_cb;
-          
+
           // Delete the callback from the storage.
           delete this._ws_callbacks[response.id];
-          
+
           // Run callback with the error object as parameter.
           error_cb(response.error);
           return;

@@ -1,7 +1,7 @@
 TestCase(
-  "JRPCClientTest", {
+  "JsonRpcClientTest", {
     testNew: function() {
-      var test = new $.JRPCClient({ ajaxUrl: '/foobar1' });
+      var test = new $.JsonRpcClient({ ajaxUrl: '/foobar1' });
       assertObject('test should be a new object', test);
     }
   }
@@ -24,10 +24,10 @@ function mock_jquery_ajax(params) {
 }
 
 AsyncTestCase(
-  'JRPCClientAsyncTest', {
+  'JsonRpcClientAsyncTest', {
     testBadBackend: function(queue) {
       // Setup a test client with a bad backend
-      var test = new $.JRPCClient({ ajaxUrl: '/foobar2' });
+      var test = new $.JsonRpcClient({ ajaxUrl: '/foobar2' });
       var error_cb_called = false;
 
       queue.call(
@@ -55,7 +55,7 @@ AsyncTestCase(
     testBatchErrorInHttp: function(queue) {
       // Test that a non-existing backen gives the overall error_cb, and that the individual
       // callbacks are not called.
-      var test = new $.JRPCClient({ ajaxUrl: '/foobar3' });
+      var test = new $.JsonRpcClient({ ajaxUrl: '/foobar3' });
       var main_error_cb_called = false;
       var other_cb_called      = false;
 
@@ -100,7 +100,7 @@ AsyncTestCase(
       var saved_jquery_ajax = jQuery.ajax;
 
       var given_url = '/bazz';
-      var test = new $.JRPCClient({ ajaxUrl: given_url });
+      var test = new $.JsonRpcClient({ ajaxUrl: given_url });
 
       var result          = null;
       var error_cb_called = false;
@@ -149,7 +149,7 @@ AsyncTestCase(
       var saved_jquery_ajax = jQuery.ajax;
 
       var given_url = '/bront';
-      var test = new $.JRPCClient({ ajaxUrl: given_url });
+      var test = new $.JsonRpcClient({ ajaxUrl: given_url });
 
       var id = null;
       
@@ -193,7 +193,7 @@ AsyncTestCase(
       var saved_jquery_ajax = jQuery.ajax;
 
       var given_http_url = '/foz';
-      var test = new $.JRPCClient({
+      var test = new $.JsonRpcClient({
         ajaxUrl: given_http_url,
         getSocket: function(onmessage_cb) { return null; }
       });
@@ -264,7 +264,7 @@ AsyncTestCase(
             other_cb_called = true;
           };
 
-          var test = new $.JRPCClient({
+          var test = new $.JsonRpcClient({
             socketUrl: 'ws://echo.websocket.org/',
             onmessage: other_onmessage
           });
