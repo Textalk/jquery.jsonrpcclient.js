@@ -248,6 +248,8 @@ AsyncTestCase(
 
       var echo_data = null;
       var other_cb_called = false;
+      var wanted_result = 'A valid result.';
+      var gotten_result = null;
 
       queue.call(
         'Setup ws-client and make call',
@@ -260,6 +262,13 @@ AsyncTestCase(
             }
           );
 
+          // The succes_cb, called bu the echo of our hand-crafter send below.
+          var success_cb = callbacks.add(
+            function(result) {
+              gotten_result = result;
+            }
+          );
+
           var other_cb = function(data) {
             other_cb_called = true;
           };
@@ -269,7 +278,21 @@ AsyncTestCase(
             onmessage: other_onmessage
           });
 
-          test.call('plebb', [ 'bar' ], other_cb, other_cb);
+          // Send a request with the client.  It will be echoed, and the echo will count as other
+          // message.
+          test.call('plebb', [ 'bar' ], success_cb, other_cb);
+
+          // Send the response via the client internal socket, to get the echo-server to send it
+          // back to us.
+          var old_onopen = test._ws_socket.onopen;
+          test._ws_socket.onopen = function(event) {
+            old_onopen(event); // chain in the already added onopen handler.
+            test._ws_socket.send($.toJSON({
+              jsonrpc: '2.0',
+              result: wanted_result,
+              id: test._current_id - 1 // match the last requests id
+            }));
+          };
         }
       );
 
@@ -279,6 +302,9 @@ AsyncTestCase(
           assertFalse('Other callback should not be called.', other_cb_called);
 
           assertNotNull('Echo-server should return the request data.', echo_data);
+
+          assertEquals('The result should be parsed and send to success_cb.',
+                       gotten_result, wanted_result);
         }
       );
     }
