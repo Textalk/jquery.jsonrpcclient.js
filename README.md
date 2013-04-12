@@ -1,4 +1,5 @@
-#JSON-RPC 2.0 Client for HTTP and WebSocket backends
+JSON-RPC 2.0 Client for HTTP and WebSocket backends
+===================================================
 
 This plugin requires jquery.json.js to be available, or at least the methods $.toJSON and
 $.parseJSON.
@@ -17,7 +18,8 @@ foo.call(
 );
 ```
 
-##Batch calls
+Batch calls
+-----------
 
 In HTTP you can batch calls by calling startBatch.  All call- and notify-requests will be batched
 up, until you run endBatch.  When a WebSocket backend is available, the requests will be sent
@@ -26,18 +28,19 @@ immediately.
 Example:
 
 ```Javascript
-    var foo = new $.JsonRpcClient({ ajaxUrl: '/backend/jsonrpc' });
-    foo.startBatch();
-    foo.call('bar', [ 'A parameter', 'B parameter' ], success_cb1, error_cb1);
-    foo.call('baz', { parameters: 'could be object' }, success_cb2, error_cb2);
-    foo.endBatch(function(all_result_array) { alert('All done.'); }, error_cb3);
+var foo = new $.JsonRpcClient({ ajaxUrl: '/backend/jsonrpc' });
+foo.startBatch();
+foo.call('bar', [ 'A parameter', 'B parameter' ], success_cb1, error_cb1);
+foo.call('baz', { parameters: 'could be object' }, success_cb2, error_cb2);
+foo.endBatch(function(all_result_array) { alert('All done.'); }, error_cb3);
 ```
 
 Each result will be paired with it's own callback.  The callback in endBatch is called when all
 other callbacks are done.
 
 
-##WebSocket
+WebSocket
+---------
 
 If a websocket backend is given, it will be used if the browser supports it:
 
@@ -51,13 +54,13 @@ The http fallback will be used when the browser is not WebSocket capable, but NO
 websocket fails to connect.
 
 
-###WebSocket other message handler
+### WebSocket other message handler
 
 If a non-response message comes in, it can be forwarded to an external handler by giving the
 onmessage-option.
 
 
-###Using an already alive websocket - getSocket option
+### Using an already alive websocket - getSocket option
 
 If you already have a websocket active and want that to be used for the JSON-RPC requests, you can
 use the getSocket option.  getSocket should point to a function with the following interface:
@@ -77,12 +80,14 @@ The main purpose of this is to couple the client with a matching server, that ca
 from the backend.
 
 
-##Test
+Test
+----
 
 The test-file is supposed to be run with [JsTestDriver](https://code.google.com/p/js-test-driver/).
 
 
-##JSON-RPC 2.0
+JSON-RPC 2.0
+------------
 
 JSON-RPC 2.0 is a very simple protocol for remote procedure calls, agnostic of carrier (http, websocket, tcp, whatever…).
 
