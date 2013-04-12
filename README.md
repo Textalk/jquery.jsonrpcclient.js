@@ -51,13 +51,13 @@ The http fallback will be used when the browser is not WebSocket capable, but NO
 websocket fails to connect.
 
 
-##WebSocket other message handler
+###WebSocket other message handler
 
 If a non-response message comes in, it can be forwarded to an external handler by giving the
 onmessage-option.
 
 
-##Using an already alive websocket - getSocket option
+###Using an already alive websocket - getSocket option
 
 If you already have a websocket active and want that to be used for the JSON-RPC requests, you can
 use the getSocket option.  getSocket should point to a function with the following interface:
