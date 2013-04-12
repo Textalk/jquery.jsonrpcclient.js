@@ -17,7 +17,6 @@ foo.call(
 );
 ```
 
-
 ##Batch calls
 
 In HTTP you can batch calls by calling startBatch.  All call- and notify-requests will be batched
@@ -80,7 +79,7 @@ from the backend.
 
 ##Test
 
-The test-file is supposed to be run with JsTestDriver.
+The test-file is supposed to be run with [JsTestDriver](https://code.google.com/p/js-test-driver/).
 
 
 ##JSON-RPC 2.0
