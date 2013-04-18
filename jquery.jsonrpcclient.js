@@ -349,7 +349,7 @@
     // If we have a WebSocket, just send the requests individually like normal calls.
     var socket = self.jsonrpcclient.options.getSocket(self.jsonrpcclient.wsOnMessage);
     if (socket !== null) {
-      for (var i in this._requests) {
+      for (var i = 0; i < this._requests.length; i++) {
         var call = this._requests[i];
         var success_cb = ('success_cb' in call) ? call.success_cb : undefined;
         var error_cb   = ('error_cb'   in call) ? call.error_cb   : undefined;
@@ -359,7 +359,7 @@
       return;
     }
 
-    for (var i in this._requests) {
+    for (var i = 0; i < this._requests.length; i++) {
       var call = this._requests[i];
       batch_request.push(call.request);
 
