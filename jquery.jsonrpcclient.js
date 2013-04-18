@@ -54,9 +54,6 @@
   /// The next JSON-RPC request id.
   $.JsonRpcClient.prototype._current_id = 1;
 
-  /// When storing batch calls, this is non-null.
-  $.JsonRpcClient.prototype._batch = null;
-
   /**
    * @fn call
    * @memberof $.JsonRpcClient
@@ -75,20 +72,10 @@
       id      : this._current_id++  // Increase the id counter to match request/response
     };
 
-    // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
+    // Try making a WebSocket call.
     var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
       this._wsCall(socket, request, success_cb, error_cb);
-      return;
-    }
-
-    if (this._batch !== null) {
-      // We're in a batch, just enqueue the data.
-      this._batch.push({
-        request    : request,
-        success_cb : success_cb,
-        error_cb   : error_cb
-      });
       return;
     }
 
@@ -144,16 +131,10 @@
       params:  params
     };
 
-    // Try making a WebSocket call. (Batching is irrelevant in WebSocket.)
+    // Try making a WebSocket call.
     var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
       this._wsCall(socket, request);
-      return;
-    }
-
-    if (this._batch !== null) {
-      // We're in a batch, just enqueue the data.
-      this._batch.push({ request: request });
       return;
     }
 
@@ -172,104 +153,25 @@
   };
 
   /**
-   * Start collecting calls into a batch.  This is only useful for HTTP backend, if WebSocket
-   * backend is available, the call is made directly.  The batch is dispatched when this.endBatch
-   * is called.
+   * Make a batch-call by using a callback.
    *
-   * @fn startBatch
+   * The callback will get an object "batch" as only argument.  On batch, you can call the methods
+   * "call" and "notify" just as if it was a normal $.JsonRpcClient object, and all calls will be
+   * sent as a batch call then the callback is done.
+   *
+   * @fn batch
    * @memberof $.JsonRpcClient
-   */
-  $.JsonRpcClient.prototype.startBatch = function() {
-    if (this._batch === null) {
-      this._batch = [];
-    }
-  };
-
-  /**
-   * Call this to execute all stored batch calls and end the batching.  All separate calls have
-   * their own callbacks executed.  Note that the results can be handled in another order than
-   * they were put in.
-   *
-   * @fn endBatch
-   * @memberof $.JsonRpcClient
-   *
+   * 
+   * @param callback    The main function which will get a batch handler to run call and notify on.
    * @param all_done_cb A callback function to call after all results have been handled.
-   * @parma error_cb    A callback function to call if there is an error from the server.
+   * @param error_cb    A callback function to call if there is an error from the server.
    *                    Note, that batch calls should always get an overall success, and the
    *                    only error
    */
-  $.JsonRpcClient.prototype.endBatch = function(all_done_cb, error_cb) {
-    var self = this;
-
-    // No batch?
-    if (this._batch === null) return;
-
-    // Copy the batch and reset it, to avoid race conditions.
-    var batch = this._batch;
-    this._batch = null;
-
-    // Empty batch?
-    if (batch.length === 0) return;
-
-    // Collect all request data and sort handlers by request id.
-    var batch_request = [];
-    var handlers = {};
-
-    for (var i in batch) {
-      var call = batch[i];
-      batch_request.push(call.request);
-
-      // If the request has an id, it should handle returns
-      if ('id' in call.request) {
-        handlers[call.request.id] = {
-          success_cb : call.success_cb,
-          error_cb   : call.error_cb
-        };
-      }
-    }
-
-    // Send request
-    $.ajax({
-      url      : this.options.ajaxUrl,
-      data     : $.toJSON(batch_request),
-      dataType : 'json',
-      cache    : false,
-      type     : 'POST',
-
-      // Batch-requests should always return 200
-      error    : function(jqXHR, textStatus, errorThrown) {
-        if (typeof error_cb === 'function') error_cb(jqXHR, textStatus, errorThrown);
-      },
-      success  : function(data) { self._batchCb(data, handlers, all_done_cb); }
-    });
-  };
-
-  /**
-   * Internal helper to match the result array from a batch call to their respective callbacks.
-   *
-   * @fn _batchCb
-   * @memberof $.JsonRpcClient
-   */
-  $.JsonRpcClient.prototype._batchCb = function(result, handlers, all_done_cb) {
-    for (var i in result) {
-      var response = result[i];
-
-      // Handle error
-      if ('error' in response) {
-        if (response.id === null || response.id in handlers) {
-          // An error on a notify?  Just log it to the console.
-          if ('console' in window) console.log(response);
-        }
-        else handlers[response.id].error_cb(response.error);
-      }
-      else {
-        // Here we should always have a correct id and no error.
-        if (response.id in handlers && 'console' in window) console.log(response);
-        else handlers[response.id].success_cb(response.result);
-      }
-    }
-
-    if (typeof all_done_cb === 'function') all_done_cb(result);
+  $.JsonRpcClient.prototype.batch = function(callback, all_done_cb, error_cb) {
+    var batch = new $.JsonRpcClient._batchObject(this, all_done_cb, error_cb);
+    callback(batch);
+    batch._execute();
   };
 
   /**
@@ -383,4 +285,142 @@
       this.options.onmessage(event);
     }
   };
+
+
+  /************************************************************************************************
+   * Batch object with methods
+   ************************************************************************************************/
+
+  /**
+   * Handling object for batch calls.
+   */
+  $.JsonRpcClient._batchObject = function(jsonrpcclient, all_done_cb, error_cb) {
+    // Array of objects to hold the call and notify requests.  Each objects will have the request
+    // object, and unless it is a notify, success_cb and error_cb.
+    this._requests   = [];
+
+    this.jsonrpcclient = jsonrpcclient;
+    this.all_done_cb = all_done_cb;
+    this.error_cb    = typeof error_cb === 'function' ? error_cb : function() {};
+
+  };
+
+  /**
+   * @sa $.JsonRpcClient.prototype.call
+   */
+  $.JsonRpcClient._batchObject.prototype.call = function(method, params, success_cb, error_cb) {
+    this._requests.push({
+      request    : {
+        jsonrpc : '2.0',
+        method  : method,
+        params  : params,
+        id      : this.jsonrpcclient._current_id++  // Use the client's id series.
+      },
+      success_cb : success_cb,
+      error_cb   : error_cb
+    });
+  };
+
+  /**
+   * @sa $.JsonRpcClient.prototype.notify
+   */
+  $.JsonRpcClient._batchObject.prototype.notify = function(method, params) {
+    this._requests.push({
+      request    : {
+        jsonrpc : '2.0',
+        method  : method,
+        params  : params
+      }
+    });
+  };
+
+  /**
+   * Executes the batched up calls.
+   */
+  $.JsonRpcClient._batchObject.prototype._execute = function() {
+    var self = this;
+
+    if (this._requests.length === 0) return; // All done :P
+
+    // Collect all request data and sort handlers by request id.
+    var batch_request = [];
+    var handlers = {};
+
+    // If we have a WebSocket, just send the requests individually like normal calls.
+    var socket = self.jsonrpcclient.options.getSocket(self.jsonrpcclient.wsOnMessage);
+    if (socket !== null) {
+      for (var i = 0; i < this._requests.length; i++) {
+        var call = this._requests[i];
+        var success_cb = ('success_cb' in call) ? call.success_cb : undefined;
+        var error_cb   = ('error_cb'   in call) ? call.error_cb   : undefined;
+        this._wsCall(socket, call.request, success_cb, error_cb);
+      }
+      if (typeof all_done_cb === 'function') all_done_cb(result);
+      return;
+    }
+
+    for (var i = 0; i < this._requests.length; i++) {
+      var call = this._requests[i];
+      batch_request.push(call.request);
+
+      // If the request has an id, it should handle returns (otherwise it's a notify).
+      if ('id' in call.request) {
+        handlers[call.request.id] = {
+          success_cb : call.success_cb,
+          error_cb   : call.error_cb
+        };
+      }
+    }
+
+    var success_cb = function(data) { self._batchCb(data, handlers, self.all_done_cb); };
+
+    // No WebSocket, and no HTTP backend?  This won't work.
+    if (self.jsonrpcclient.options.ajaxUrl === null) {
+      throw "$.JsonRpcClient.batch used with no websocket and no http endpoint.";
+    }
+
+    // Send request
+    $.ajax({
+      url      : self.jsonrpcclient.options.ajaxUrl,
+      data     : $.toJSON(batch_request),
+      dataType : 'json',
+      cache    : false,
+      type     : 'POST',
+
+      // Batch-requests should always return 200
+      error    : function(jqXHR, textStatus, errorThrown) {
+        self.error_cb(jqXHR, textStatus, errorThrown);
+      },
+      success  : success_cb
+    });
+  };
+
+  /**
+   * Internal helper to match the result array from a batch call to their respective callbacks.
+   *
+   * @fn _batchCb
+   * @memberof $.JsonRpcClient
+   */
+  $.JsonRpcClient._batchObject.prototype._batchCb = function(result, handlers, all_done_cb) {
+    for (var i = 0; i < result.length; i++) {
+      var response = result[i];
+
+      // Handle error
+      if ('error' in response) {
+        if (response.id === null || !(response.id in handlers)) {
+          // An error on a notify?  Just log it to the console.
+          if ('console' in window) console.log(response);
+        }
+        else handlers[response.id].error_cb(response.error);
+      }
+      else {
+        // Here we should always have a correct id and no error.
+        if (!(response.id in handlers) && 'console' in window) console.log(response);
+        else handlers[response.id].success_cb(response.result);
+      }
+    }
+
+    if (typeof all_done_cb === 'function') all_done_cb(result);
+  };
+
 })(jQuery);

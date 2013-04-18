@@ -13,12 +13,57 @@ TestCase(
 function mock_jquery_ajax(params) {
   var data = $.parseJSON(params.data);
 
-  // Call the success-callback if there is an id.
-  if ('id' in data) {
+  // Is this a batch call?  Mocking a little differently.
+  if (typeof data === 'object' && Array.isArray(data)) {
+    var response = [];
+
+    for (var i = 0; i < data.length; i++) {
+      var subdata = data[i];
+
+      // Fake a json-rpc error if the method is make_error.
+      if (subdata.method === 'make_error') {
+        response.push({
+          jsonrpc : '2.0',
+          id      : subdata.id,
+          error: {
+            code    : -42,
+            message : 'make_error made an error.',
+            data    : subdata.params
+          }
+        });
+      }
+      else if ('id' in subdata) {
+        response.push({
+          jsonrpc : '2.0',
+          id      : subdata.id,
+          result  : subdata.params
+        });
+      }
+    }
+
+    params.success(response);
+  }
+
+  // Fake a json-rpc error if the method is make_error.
+  if (data.method === 'make_error') {
+    // The AJAX call is successfull, it's up to JsonRpcClient to parse this as an error.
     params.success({
       jsonrpc: '2.0',
       id: params.id,
-      result: params
+      error: {
+        code    : -42,
+        message : 'make_error made an error.',
+        data    : params
+      }
+    });
+  }
+
+  // Call the success-callback if there is an id.
+  if ('id' in data) {
+    params.success({
+      jsonrpc : '2.0',
+      id      : data.id,
+      result  : params
     });
   }
 }
@@ -52,8 +97,9 @@ AsyncTestCase(
         }
       );
     },
+
     testBatchErrorInHttp: function(queue) {
-      // Test that a non-existing backen gives the overall error_cb, and that the individual
+      // Test that a non-existing backend gives the overall error_cb, and that the individual
       // callbacks are not called.
       var test = new $.JsonRpcClient({ ajaxUrl: '/foobar3' });
       var main_error_cb_called = false;
@@ -70,11 +116,14 @@ AsyncTestCase(
 
           var other_cb = function() { other_cb_called = true; };
 
-          test.startBatch();
-          test.call('foo', [], other_cb, other_cb);
-          test.call('bar', [], other_cb, other_cb);
-          test.call('baz', [], other_cb, other_cb);
-          test.endBatch(other_cb, main_error_cb);
+          test.batch(
+            function(batch) {
+              batch.call('foo', [], other_cb, other_cb);
+              batch.call('bar', [], other_cb, other_cb);
+              batch.call('baz', [], other_cb, other_cb);
+            },
+            other_cb, main_error_cb
+          );
         }
       );
 
@@ -84,6 +133,94 @@ AsyncTestCase(
           assertTrue(
             'The main error_cb should be triggered.',
             main_error_cb_called
+          );
+          assertFalse(
+            'No other callback should be triggered.',
+            other_cb_called
+          );
+        }
+      );
+    },
+
+    testBatchHttp: function(queue) {
+      // Test that both calls in the batch are given their respective data no matter the order of
+      // the results, with call 3 getting an error.
+      var test = new $.JsonRpcClient({ ajaxUrl: '/backend/Article/17094007' });
+
+      // Save the normal jQuery.ajax.
+      var saved_jquery_ajax = jQuery.ajax;
+
+      var all_done_cb_called = false;
+      var call1_data         = undefined;
+      var call2_data         = undefined;
+      var call3_errorcb_data = undefined;
+      var other_cb_called    = false;
+      
+      queue.call(
+        'Step 1: register ajax callback.',
+        function(callbacks) {
+          // Replace jQuery.ajax with a mocked function.
+          jQuery.ajax = callbacks.add(mock_jquery_ajax);
+
+          //
+          var all_done_cb = callbacks.add(
+            function(given_result) {
+              all_done_cb_called = true;
+            }
+          );
+
+          var call1_cb = callbacks.add(
+            function(given_result) {
+              call1_data = given_result;
+            }
+          );
+
+          var call2_cb = callbacks.add(
+            function(given_result) {
+              call2_data = given_result;
+            }
+          );
+
+          var call3_errorcb = callbacks.add(
+            function(given_result) {
+              call3_errorcb_data = given_result;
+            }
+          );
+
+          var other_cb = function() { other_cb_called = true; };
+
+          test.batch(
+            function(batch) {
+              batch.call('foo', [ 1 ], call1_cb, other_cb);
+              batch.call('bar', [ 2 ], call2_cb, other_cb);
+              batch.call('make_error', [ 3 ], other_cb, call3_errorcb);
+            },
+            all_done_cb, other_cb
+          );
+        }
+      );
+
+      queue.call(
+        'Step 2: check that callback has been called correctly.',
+        function() {
+          assertTrue(
+            'all_done_cb should be called.',
+            all_done_cb_called
+          );
+          assertEquals(
+            'call1 should get the parameter list [ 1 ]',
+            [ 1 ],
+            call1_data
+          );
+          assertEquals(
+            'call2 should get the parameter list [ 2 ]',
+            [ 2 ],
+            call2_data
+          );
+          assertEquals(
+            'call3_errorcb should be given code -42.',
+            -42,
+            call3_errorcb_data.code
           );
           assertFalse(
             'No other callback should be triggered.',
