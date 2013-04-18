@@ -1,0 +1,31 @@
+{
+  "name":         "jsonrpcclient",
+  "title":        "jQuery JsonRpcClient",
+  "description": "jQuery JSON-RPC 2.0 client for HTTP and WebSocket backends.",
+  "keywords": [
+    "json-rpc"
+  ],
+  "version": "0.2.0",
+  "author": {
+    "name": "Textalk AB",
+    "url":  "https://textalk.se/"
+  },
+  "maintainers": [
+    {
+      "name": "Fredrik Liljegren"
+    }
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url":  "https://github.com/Textalk/jquery.jsonrpcclient.js/blob/master/LICENSE"
+    }
+  ],
+  "bugs":     "https://github.com/Textalk/jquery.jsonrpcclient.js/issues",
+  "homepage": "https://github.com/Textalk/jquery.jsonrpcclient.js",
+  "docs":     "https://github.com/Textalk/jquery.jsonrpcclient.js",
+  "download": "https://github.com/Textalk/jquery.jsonrpcclient.js/archive/master.zip",
+  "dependencies": {
+    "jquery": ">=1.5"
+  }
+}
