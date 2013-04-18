@@ -21,22 +21,28 @@ foo.call(
 Batch calls
 -----------
 
-In HTTP you can batch calls by calling startBatch.  All call- and notify-requests will be batched
-up, until you run endBatch.  When a WebSocket backend is available, the requests will be sent
-immediately.
+In HTTP you can batch calls with the batch-method.  You get a batch handler to make all call- and
+notify-requests on, and they will all be sent in a single request.  When a WebSocket backend is
+available, the requests will be sent immediately.
 
 Example:
 
 ```Javascript
 var foo = new $.JsonRpcClient({ ajaxUrl: '/backend/jsonrpc' });
-foo.startBatch();
-foo.call('bar', [ 'A parameter', 'B parameter' ], success_cb1, error_cb1);
-foo.call('baz', { parameters: 'could be object' }, success_cb2, error_cb2);
-foo.endBatch(function(all_result_array) { alert('All done.'); }, error_cb3);
+foo.batch(
+  function(batch) {
+    batch.call('bar', [ 'A parameter', 'B parameter' ], success_cb1, error_cb1);
+    batch.call('baz', { parameters: 'could be object' }, success_cb2, error_cb2);
+  },
+  function(all_result_array) { alert('All done.'); },
+  function(error_data)       { alert('Error in batch response.'); }
+);
 ```
+Each result will be paired with it's own callback.  The all_done_callback given first to batch is
+called when all other callbacks are done.
 
-Each result will be paired with it's own callback.  The callback in endBatch is called when all
-other callbacks are done.
+NB: When a WebSocket is available, the all_done_cb will be called as soon as all request are
+dispatched.
 
 
 WebSocket
@@ -89,6 +95,7 @@ The test-file is supposed to be run with [JsTestDriver](https://code.google.com/
 JSON-RPC 2.0
 ------------
 
-JSON-RPC 2.0 is a very simple protocol for remote procedure calls, agnostic of carrier (http, websocket, tcp, whatever…).
+JSON-RPC 2.0 is a very simple protocol for remote procedure calls, agnostic of carrier (http,
+websocket, tcp, whatever…).
 
 [JSON-RPC 2.0 Specification](http://www.jsonrpc.org/specification)
