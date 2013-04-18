@@ -95,6 +95,7 @@ The test-file is supposed to be run with [JsTestDriver](https://code.google.com/
 JSON-RPC 2.0
 ------------
 
-JSON-RPC 2.0 is a very simple protocol for remote procedure calls, agnostic of carrier (http, websocket, tcp, whatever…).
+JSON-RPC 2.0 is a very simple protocol for remote procedure calls, agnostic of carrier (http,
+websocket, tcp, whatever…).
 
 [JSON-RPC 2.0 Specification](http://www.jsonrpc.org/specification)
