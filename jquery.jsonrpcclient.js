@@ -25,6 +25,8 @@
    *                ajaxUrl    A url (relative or absolute) to a http(s) backend.
    *                socketUrl  A url (relative of absolute) to a ws(s) backend.
    *                onmessage  A socket message handler for other messages (non-responses).
+   *                onopen     A socket onopen handler. (Not used for custom getSocket.)
+   *                onclose    A socket onclose handler. (Not used for custom getSocket.)
    *                getSocket  A function returning a WebSocket or null.
    *                           It must take an onmessage_cb and bind it to the onmessage event
    *                           (or chain it before/after some other onmessage handler).
@@ -36,9 +38,11 @@
     var self = this;
     this.options = $.extend({
       ajaxUrl     : null,
-      socketUrl   : null, ///< The ws-url for default getSocket.
-      onmessage   : null, ///< Other onmessage-handler.
-      getSocket   : function(onmessage_cb) { return self._getSocket(onmessage_cb); }
+      socketUrl   : null, ///< WebSocket URL. (Not used if a custom getSocket is supplied.)
+      onmessage   : null, ///< Optional onmessage-handler for WebSocket.
+      onopen      : null, ///< Optional onopen-handler for WebSocket.
+      onclose     : null, ///< Optional onclose-handler for WebSocket.
+      getSocket   : self._getSocket ///< Custom socket supplier for using an already existing socket
     }, options);
 
     // Declare an instance version of the onmessage callback to wrap 'this'.
@@ -193,6 +197,11 @@
 
       // Set up onmessage handler.
       this._ws_socket.onmessage = onmessage_cb;
+
+      // Set up onclose handler.
+      if (typeof this.options.onclose === "function") {
+        this._ws_socket.onclose = this.options.onclose;
+      }
     }
 
     return this._ws_socket;
@@ -212,7 +221,11 @@
       self = this; // In closure below, this is set to the WebSocket.  Use self instead.
 
       // Set up sending of message for when the socket is open.
-      socket.onopen = function() {
+      socket.onopen = function(event) {
+        // Hook for extra onopen callback
+        if (typeof self.options.onopen === "function") {
+          self.options.onopen(event);
+        }
         // Send the request.
         socket.send(request_json);
       };
