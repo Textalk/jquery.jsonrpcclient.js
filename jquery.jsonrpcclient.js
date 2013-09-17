@@ -42,7 +42,8 @@
       onmessage   : null, ///< Optional onmessage-handler for WebSocket.
       onopen      : null, ///< Optional onopen-handler for WebSocket.
       onclose     : null, ///< Optional onclose-handler for WebSocket.
-      getSocket   : self._getSocket ///< Custom socket supplier for using an already existing socket
+      /// Custom socket supplier for using an already existing socket
+      getSocket   : function (onmessage_cb) { return self._getSocket(onmessage_cb) }
     }, options);
 
     // Declare an instance version of the onmessage callback to wrap 'this'.
