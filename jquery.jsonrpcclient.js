@@ -98,7 +98,7 @@
 
       success  : function(data) {
         if ('error' in data) error_cb(data.error);
-        success_cb(data.result);
+        else success_cb(data.result);
       },
 
       // JSON-RPC Server could return non-200 on error
