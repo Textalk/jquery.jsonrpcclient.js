@@ -97,8 +97,8 @@
       cache    : false,
 
       success  : function(data) {
-        if ('error' in data) error_cb(data.error);
-        else success_cb(data.result);
+        if ('error' in data && typeof error_cb === 'function') error_cb(data.error);
+        else if (typeof success_cb === 'function') success_cb(data.result);
       },
 
       // JSON-RPC Server could return non-200 on error
@@ -106,11 +106,11 @@
         try {
           var response = $.parseJSON(jqXHR.responseText);
           if ('console' in window) console.log(response);
-          error_cb(response.error);
+          if (typeof error_cb === 'function') error_cb(response.error);
         }
         catch (err) {
           // Perhaps the responseText wasn't really a jsonrpc-error.
-          error_cb({ error: jqXHR.responseText });
+          if (typeof error_cb === 'function') error_cb({ error: jqXHR.responseText });
         }
       }
     });
