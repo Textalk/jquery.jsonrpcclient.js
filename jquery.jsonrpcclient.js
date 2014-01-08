@@ -97,8 +97,12 @@
       cache    : false,
 
       success  : function(data) {
-        if ('error' in data && typeof error_cb === 'function') error_cb(data.error);
-        else if (typeof success_cb === 'function') success_cb(data.result);
+        if ('error' in data) {
+          if (typeof error_cb === 'function') error_cb(data.error);
+        }
+        else {
+          if (typeof success_cb === 'function') success_cb(data.result);
+        }
       },
 
       // JSON-RPC Server could return non-200 on error

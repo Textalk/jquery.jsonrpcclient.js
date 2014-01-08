@@ -91,6 +91,16 @@ Test
 
 The test-file is supposed to be run with [JsTestDriver](https://code.google.com/p/js-test-driver/).
 
+To run the tests from the command line, use the following commands:
+
+# Step 1 - Start jsTestDriver server on port 9000 on localhost
+java -jar /path/to/jsTestDriver.jar --port 9000
+
+# Step 2 - Browse to http://localhost:9000/capture with one or more browsers
+# Each browser you direct to that address will run the tests.
+
+# Step 3 - Run tests
+java -jar /path/to/jsTestDriver.jar --config jsTestDriver.conf --tests jquery.jsonrpcclient.test.js
 
 JSON-RPC 2.0
 ------------
