@@ -27,6 +27,7 @@
    *                onmessage  A socket message handler for other messages (non-responses).
    *                onopen     A socket onopen handler. (Not used for custom getSocket.)
    *                onclose    A socket onclose handler. (Not used for custom getSocket.)
+   *                onerror    A socket onerror handler. (Not used for custom getSocket.)
    *                getSocket  A function returning a WebSocket or null.
    *                           It must take an onmessage_cb and bind it to the onmessage event
    *                           (or chain it before/after some other onmessage handler).
@@ -42,6 +43,7 @@
       onmessage   : null, ///< Optional onmessage-handler for WebSocket.
       onopen      : null, ///< Optional onopen-handler for WebSocket.
       onclose     : null, ///< Optional onclose-handler for WebSocket.
+      onerror     : null, ///< Optional onerror-handler for WebSocket.
       /// Custom socket supplier for using an already existing socket
       getSocket   : function (onmessage_cb) { return self._getSocket(onmessage_cb); }
     }, options);
@@ -206,6 +208,11 @@
       // Set up onclose handler.
       if (typeof this.options.onclose === "function") {
         this._ws_socket.onclose = this.options.onclose;
+      }
+
+      // Set up onerror handler.
+      if (typeof this.options.onerror === "function") {
+        this._ws_socket.onerror = this.options.onerror;
       }
     }
 

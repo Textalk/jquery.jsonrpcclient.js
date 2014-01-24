@@ -155,7 +155,7 @@ AsyncTestCase(
       var call2_data         = undefined;
       var call3_errorcb_data = undefined;
       var other_cb_called    = false;
-      
+
       queue.call(
         'Step 1: register ajax callback.',
         function(callbacks) {
@@ -289,7 +289,7 @@ AsyncTestCase(
       var test = new $.JsonRpcClient({ ajaxUrl: given_url });
 
       var id = null;
-      
+
       queue.call(
         'Step 1: register ajax callback.',
         function(callbacks) {
@@ -442,6 +442,63 @@ AsyncTestCase(
 
           assertEquals('The result should be parsed and send to success_cb.',
                        gotten_result, wanted_result);
+        }
+      );
+    },
+
+    testWebsocketOnError: function(queue) {
+      var error_gotten = null;
+
+      jstestdriver.plugins.async.CallbackPool.TIMEOUT = 1000;
+
+      queue.call(
+        'Setup ws-client and make call',
+        function(callbacks) {
+          var onerror_cb = callbacks.add(
+            function(error) {
+              error_gotten = error;
+            }
+          );
+
+          // Save the existing WebSocket, if any.
+          var savedWebSocket = null;
+
+          if ('WebSocket' in window) { savedWebSocket = window.WebSocket; }
+
+          // Mock a websocket-like object and patch it in!
+          window.WebSocket = function(url) {
+            this.onopen    = null;
+            this.onmessage = null;
+            this.onclose   = null;
+            this.onerror   = null;
+
+            this.send = function(data) {
+              // Make all send requests cause an error.
+              if (typeof this.onerror === 'function') {
+                this.onerror("Sending of data failed!");
+              }
+            };
+          };
+
+          var client = new $.JsonRpcClient({
+            socketUrl: 'ws://echo.websocket.org/',
+            onerror: onerror_cb
+          });
+
+          // Send a request with client.  This should trigger the socket onerror_cb.
+          client.notify('foo', []);
+
+          // Restore the real WebSocket.
+          if (typeof savedWebSocket === 'function') {
+            window.WebSocket = savedWebSocket;
+          }
+        }
+      );
+
+      queue.call(
+        'Assert that onerror is called.',
+        function() {
+          assertEquals('Sending of data failed!', error_gotten);
         }
       );
     }
