@@ -261,54 +261,52 @@
    * @param event The websocket onmessage-event.
    */
   $.JsonRpcClient.prototype._wsOnMessage = function(event) {
+    
+    //handle the case when the message is not JSON-RPC message 
+    var fallback = typeof this.options.onmessage === 'function' ? this.options.onmessage:function(){};
+
     // Check if this could be a JSON RPC message.
+    var response;
     try {
-      var response = $.parseJSON(event.data);
+      response = $.parseJSON(event.data);
+    } catch (err){
+      fallback(event); 
+    }
 
-      /// @todo Make using the jsonrcp 2.0 check optional, to use this on JSON-RPC 1 backends.
+    /// @todo Make using the jsonrcp 2.0 check optional, to use this on JSON-RPC 1 backends.
+    if (typeof response === 'object'
+        && response.jsonrpc === '2.0') {
 
-      if (typeof response === 'object'
-          && 'jsonrpc' in response
-          && response.jsonrpc === '2.0') {
+      /// @todo Handle bad response (without id).
+    
+      // If this is an object with result, it is a response.
+      if ('result' in response && this._ws_callbacks[response.id]) {
+        // Get the success callback.
+        var success_cb = this._ws_callbacks[response.id].success_cb;
 
-        /// @todo Handle bad response (without id).
+        // Delete the callback from the storage.
+        delete this._ws_callbacks[response.id];
 
-        // If this is an object with result, it is a response.
-        if ('result' in response && this._ws_callbacks[response.id]) {
-          // Get the success callback.
-          var success_cb = this._ws_callbacks[response.id].success_cb;
+        // Run callback with result as parameter.
+        success_cb(response.result);
+        return;
+      }
 
-          // Delete the callback from the storage.
-          delete this._ws_callbacks[response.id];
+      // If this is an object with error, it is an error response.
+      else if ('error' in response && this._ws_callbacks[response.id]) {
+        // Get the error callback.
+        var error_cb = this._ws_callbacks[response.id].error_cb;
 
-          // Run callback with result as parameter.
-          success_cb(response.result);
-          return;
-        }
+        // Delete the callback from the storage.
+        delete this._ws_callbacks[response.id];
 
-        // If this is an object with error, it is an error response.
-        else if ('error' in response && this._ws_callbacks[response.id]) {
-          // Get the error callback.
-          var error_cb = this._ws_callbacks[response.id].error_cb;
-
-          // Delete the callback from the storage.
-          delete this._ws_callbacks[response.id];
-
-          // Run callback with the error object as parameter.
-          error_cb(response.error);
-          return;
-        }
+        // Run callback with the error object as parameter.
+        error_cb(response.error);
+        return;
       }
     }
-    catch (err) {
-      // Probably an error while parsing a non json-string as json.  All real JSON-RPC cases are
-      // handled above, and the fallback method is called below.
-    }
 
-    // This is not a JSON-RPC response.  Call the fallback message handler, if given.
-    if (typeof this.options.onmessage === 'function') {
-      this.options.onmessage(event);
-    }
+    fallback(event);
   };
 
 
