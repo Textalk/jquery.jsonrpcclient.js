@@ -629,7 +629,8 @@ AsyncTestCase(
       queue.call(
         'Assert that onmessage is called.',
         function() {
-          assertEquals('Error: Dude, not again', error_gotten);
+          //chrome prepends 'Uncaught Error:', Firefox prepends 'Error'
+          assertEquals(' Dude, not again', error_gotten.split(':')[1]);
           window.onerror = null;
         }
       );

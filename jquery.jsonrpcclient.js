@@ -37,13 +37,14 @@
    */
   $.JsonRpcClient = function(options) {
     var self = this;
+    var noop = function(){};
     this.options = $.extend({
       ajaxUrl     : null,
       socketUrl   : null, ///< WebSocket URL. (Not used if a custom getSocket is supplied.)
-      onmessage   : null, ///< Optional onmessage-handler for WebSocket.
-      onopen      : null, ///< Optional onopen-handler for WebSocket.
-      onclose     : null, ///< Optional onclose-handler for WebSocket.
-      onerror     : null, ///< Optional onerror-handler for WebSocket.
+      onmessage   : noop, ///< Optional onmessage-handler for WebSocket.
+      onopen      : noop, ///< Optional onopen-handler for WebSocket.
+      onclose     : noop, ///< Optional onclose-handler for WebSocket.
+      onerror     : noop, ///< Optional onerror-handler for WebSocket.
       /// Custom socket supplier for using an already existing socket
       getSocket   : function (onmessage_cb) { return self._getSocket(onmessage_cb); }
     }, options);
@@ -71,6 +72,9 @@
    * @param error_cb   A callback for error.
    */
   $.JsonRpcClient.prototype.call = function(method, params, success_cb, error_cb) {
+    success_cb = typeof success_cb === 'function' ? success_cb : function(){};
+    error_cb   = typeof error_cb   === 'function' ? error_cb   : function(){}; 
+
     // Construct the JSON-RPC 2.0 request.
     var request = {
       jsonrpc : '2.0',
@@ -100,10 +104,10 @@
 
       success  : function(data) {
         if ('error' in data) {
-          if (typeof error_cb === 'function') error_cb(data.error);
+          error_cb(data.error);
         }
         else {
-          if (typeof success_cb === 'function') success_cb(data.result);
+          success_cb(data.result);
         }
       },
 
@@ -112,11 +116,12 @@
         try {
           var response = $.parseJSON(jqXHR.responseText);
           if ('console' in window) console.log(response);
-          if (typeof error_cb === 'function') error_cb(response.error);
+          
+          error_cb(response.error);
         }
         catch (err) {
           // Perhaps the responseText wasn't really a jsonrpc-error.
-          if (typeof error_cb === 'function') error_cb({ error: jqXHR.responseText });
+          error_cb({ error: jqXHR.responseText });
         }
       }
     });
@@ -206,14 +211,10 @@
       this._ws_socket.onmessage = onmessage_cb;
 
       // Set up onclose handler.
-      if (typeof this.options.onclose === "function") {
-        this._ws_socket.onclose = this.options.onclose;
-      }
+      this._ws_socket.onclose = this.options.onclose;
 
       // Set up onerror handler.
-      if (typeof this.options.onerror === "function") {
-        this._ws_socket.onerror = this.options.onerror;
-      }
+      this._ws_socket.onerror = this.options.onerror;
     }
 
     return this._ws_socket;
@@ -235,9 +236,8 @@
       // Set up sending of message for when the socket is open.
       socket.onopen = function(event) {
         // Hook for extra onopen callback
-        if (typeof self.options.onopen === "function") {
-          self.options.onopen(event);
-        }
+        self.options.onopen(event);
+        
         // Send the request.
         socket.send(request_json);
       };
@@ -262,15 +262,12 @@
    */
   $.JsonRpcClient.prototype._wsOnMessage = function(event) {
     
-    //handle the case when the message is not JSON-RPC message 
-    var fallback = typeof this.options.onmessage === 'function' ? this.options.onmessage:function(){};
-
     // Check if this could be a JSON RPC message.
     var response;
     try {
       response = $.parseJSON(event.data);
     } catch (err){
-      fallback(event); 
+      this.options.onmessage(event); 
     }
 
     /// @todo Make using the jsonrcp 2.0 check optional, to use this on JSON-RPC 1 backends.
@@ -306,7 +303,8 @@
       }
     }
 
-    fallback(event);
+    //If we get here its not a valid JSON-RPC response, pass it along to the fallback message handler.
+    this.options.onmessage(event);
   };
 
 
@@ -374,9 +372,7 @@
     if (socket !== null) {
       for (var i = 0; i < this._requests.length; i++) {
         var call = this._requests[i];
-        var success_cb = ('success_cb' in call) ? call.success_cb : undefined;
-        var error_cb   = ('error_cb'   in call) ? call.error_cb   : undefined;
-        self.jsonrpcclient._wsCall(socket, call.request, success_cb, error_cb);
+        self.jsonrpcclient._wsCall(socket, call.request, call.success_cb, call.error_cb);
       }
       if (typeof all_done_cb === 'function') all_done_cb(result);
       return;
