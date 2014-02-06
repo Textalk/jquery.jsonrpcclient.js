@@ -467,10 +467,10 @@ AsyncTestCase(
 
           // Mock a websocket-like object and patch it in!
           window.WebSocket = function(url) {
-            this.onopen    = null;
-            this.onmessage = null;
-            this.onclose   = null;
-            this.onerror   = null;
+            this.onopen     = null;
+            this.onmessage  = null;
+            this.onclose    = null;
+            this.onerror    = null;
 
             this.send = function(data) {
               // Make all send requests cause an error.
@@ -499,6 +499,139 @@ AsyncTestCase(
         'Assert that onerror is called.',
         function() {
           assertEquals('Sending of data failed!', error_gotten);
+        }
+      );
+    },
+
+    //test that messages that don't parse as JSON is passed along
+    //to fallback message handler, see issue 14
+    testWebsocketJSONErrorPassthrough: function(queue) {
+      var data_gotten = null;
+
+      jstestdriver.plugins.async.CallbackPool.TIMEOUT = 1000;
+
+      queue.call(
+        'Setup ws-client and make call, mocking a non JSON response',
+        function(callbacks) {
+          var onmessage_cb = callbacks.add(
+            function(data) {
+              data_gotten = data;
+            }
+          );
+
+          // Save the existing WebSocket, if any.
+          var savedWebSocket = null;
+
+          if ('WebSocket' in window) { savedWebSocket = window.WebSocket; }
+
+          // Mock a websocket-like object and patch it in!
+          window.WebSocket = function(url) {
+            this.onopen    = null;
+            this.onmessage = null;
+            this.onclose   = null;
+            this.onerror   = null;
+            this.readyState = 1;
+
+            this.send = function(data) {
+              //response is a fake json response
+              this.onmessage({ data: 'this is not JSON' });
+            };
+          };
+
+          var client = new $.JsonRpcClient({
+            socketUrl: 'ws://localhost/',
+            onmessage: onmessage_cb
+          });
+
+          // Send a request with client.  This should trigger the socket onmessage_cb.
+          client.notify('foo', []);
+
+          // Restore the real WebSocket.
+          if (typeof savedWebSocket === 'function') {
+            window.WebSocket = savedWebSocket;
+          }
+        }
+      );
+
+      queue.call(
+        'Assert that onmessage is called.',
+        function() {
+          assertEquals('this is not JSON', data_gotten.data);
+        }
+      );
+    },
+
+    //errors in callback should not be consumed silently
+    //see issue 14
+    testWebsocketCallbackError: function(queue) {
+      var error_gotten = null;
+      jstestdriver.plugins.async.CallbackPool.TIMEOUT = 1000;
+
+      queue.call(
+        'Setup ws-client and make call, mocking a response',
+        function(callbacks) {
+
+          // Save the existing WebSocket, if any.
+          var savedWebSocket = null;
+
+          if ('WebSocket' in window) { savedWebSocket = window.WebSocket; }
+
+          // Mock a websocket-like object and patch it in!
+          window.WebSocket = function(url) {
+            this.onopen    = null;
+            this.onmessage = null;
+            this.onclose   = null;
+            this.onerror   = null;
+            this.readyState = 1;
+
+            this.send = function(data) {
+              var that = this;
+              setTimeout(function(){
+                //fake a json response
+                that.onmessage({ 
+                  data: $.toJSON({
+                    jsonrpc: "2.0",
+                    id: $.parseJSON(data).id,
+                    result: "foobar"
+                  })
+                });
+              },0);
+            };
+          };
+
+          var client = new $.JsonRpcClient({
+            socketUrl: 'ws://localhost/',
+            onmessage: callbacks.addErrback('onmessage'),
+            onerror: callbacks.addErrback('onerror'),
+          });
+
+          // Send a request with client.  This should trigger an exception
+          // this "works" since our WebSocket mock is synchronous
+          // in production this will just end up as an error in the browser
+          var error = new Error('Dude, not again');
+
+          window.onerror = callbacks.add(function(msg){
+            error_gotten = msg;
+          });  
+          client.call('foo', [],function(){
+            //ooops we have a bug in our callback!
+            throw error;
+          },callbacks.addErrback());
+          
+
+          // Restore the real WebSocket.
+          if (typeof savedWebSocket === 'function') {
+            window.WebSocket = savedWebSocket;
+          }
+        }
+      );
+
+      queue.call(
+        'Assert that onmessage is called.',
+        function() {
+          //chrome prepends 'Uncaught Error:', Firefox prepends 'Error'
+          assertEquals(' Dude, not again', error_gotten.split(':')[1]);
+          window.onerror = null;
         }
       );
     }

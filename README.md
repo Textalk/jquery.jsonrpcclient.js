@@ -100,7 +100,7 @@ To run the tests from the command line, use the following commands:
     # Each browser you direct to that address will run the tests.
 
     # Step 3 - Run tests
-    java -jar /path/to/jsTestDriver.jar --config jsTestDriver.conf --tests jquery.jsonrpcclient.test.js
+    java -jar /path/to/jsTestDriver.jar --reset --config jsTestDriver.conf --tests all
 
 JSON-RPC 2.0
 ------------
