@@ -1,0 +1,18 @@
+{
+  "name": "jquery-jsonrpcclient",
+  "version": "0.1.1",
+  "description": "JSON-RPC 2.0 Client for HTTP and WebSocket backend",
+  "main": "jquery.jsonrpcclient.js",
+  "scripts": {
+    "test": "karma start unit/unit.conf.js"
+  },
+  "author": "Textalk AB http://textalk.se/",
+  "license": "MIT",
+  "devDependencies": {
+    "karma": "~0.10.9",
+    "karma-mocha": "~0.1.1",
+    "karma-chai-sinon": "~0.1.1",
+    "jquery": "~2.1.0",
+    "karma-coverage": "~0.1.5"
+  }
+}

@@ -86,18 +86,22 @@ from the backend.
 Test
 ----
 
-The test-file is supposed to be run with [JsTestDriver](https://code.google.com/p/js-test-driver/).
+We use [Karma](http://karma-runner.github.io) to run the tests. 
+To run the tests you need nodejs installed
 
-To run the tests from the command line, use the following commands:
+To install Karma and it's dependencies (we use mocha,sinon and chai as test frameworks, and phantomjs to run the tests)
+```bash
+$ sudo npm install -g karma
+$ sudo npm install -g phantomjs
+$ cd jquery.jsonrpclient.js/
+$ npm install
+```
 
-    # Step 1 - Start jsTestDriver server on port 9000 on localhost
-    java -jar /path/to/jsTestDriver.jar --port 9000
+Start karma, it will automaticaly run the tests and then watch for changes and rerun on each change.
+```bash
+$ karma start tests/unit.conf.js
+```
 
-    # Step 2 - Browse to http://localhost:9000/capture with one or more browsers
-    # Each browser you direct to that address will run the tests.
-
-    # Step 3 - Run tests
-    java -jar /path/to/jsTestDriver.jar --reset --config jsTestDriver.conf --tests all
 
 JSON-RPC 2.0
 ------------
