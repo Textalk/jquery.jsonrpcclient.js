@@ -634,6 +634,142 @@ AsyncTestCase(
           window.onerror = null;
         }
       );
+    },
+
+    //queue calls on webscket until onopen
+    //see issue 11
+    testWebsocketQueueing: function(queue) {
+      jstestdriver.plugins.async.CallbackPool.TIMEOUT = 1000;
+
+      queue.call(
+        'Setup ws-client and make two calls before websocket is opened.',
+        function(callbacks) {
+
+          // Save the existing WebSocket, if any.
+          var savedWebSocket = window.WebSocket;
+
+          var sendCount = 0;
+          // Mock a websocket-like object and patch it in!
+          window.WebSocket = function() {
+            this.onopen    = null;
+            this.onmessage = null;
+            this.onclose   = null;
+            this.onerror   = null;
+            this.readyState = 0;
+
+            this._open = function(){
+              this.readyState = 1;
+              this.onopen && this.onopen();
+            };
+
+            this.send = function() {
+              sendCount++;
+            };
+          };
+
+          var client = new $.JsonRpcClient({
+            socketUrl: 'ws://localhost/',
+            onmessage: callbacks.addErrback('onmessage'),
+            onerror: callbacks.addErrback('onerror'),
+          });
+
+          var noop = function(){};
+
+          //send two requests, then "open" the websocket
+          client.call('foo', [],noop,callbacks.addErrback());
+          client.call('foo', [],noop,callbacks.addErrback());
+          
+          //opne socket *after*, both should be queued
+          client._ws_socket._open();
+
+          assertEquals(2,sendCount);
+
+          // Restore the real WebSocket.
+          if (typeof savedWebSocket === 'function') {
+            window.WebSocket = savedWebSocket;
+          }
+        }
+      );
+    },
+
+
+    //queue calls on webscket until onopen, batching
+    //see issue 11
+    testWebsocketQueueingWithBatching: function(queue) {
+      jstestdriver.plugins.async.CallbackPool.TIMEOUT = 1000;
+
+      // Save the existing WebSocket, if any.
+      var savedWebSocket = window.WebSocket;
+
+      queue.call(
+        'Setup ws-client and make a batched call before websocket is opened.',
+        function(callbacks) {
+
+          var receivedCount = 0;
+          // Mock a websocket-like object and patch it in!
+          window.WebSocket = function() {
+            this.onopen    = null;
+            this.onmessage = null;
+            this.onclose   = null;
+            this.onerror   = null;
+            this.readyState = 0;
+
+            this._open = function(){
+              this.readyState = 1;
+              this.onopen && this.onopen();
+            };
+            var that = this;
+            this.send = function(data) {
+              setTimeout(function(){
+                //fake a json response
+                that.onmessage({ 
+                  data: $.toJSON({
+                    jsonrpc: "2.0",
+                    id: $.parseJSON(data).id,
+                    result: "foobar"
+                  })
+                });
+              },0);
+            };
+          };
+
+          var client = new $.JsonRpcClient({
+            socketUrl: 'ws://localhost/',
+            onmessage: callbacks.addErrback('onmessage'),
+            onerror: callbacks.addErrback('onerror'),
+          });
+
+          //batch a request before ws is opened
+          client.batch(function(batch){
+            //send two requests, then "open" the websocket
+            batch.call('foo', [],callbacks.add(function(){
+              receivedCount++;
+            }),callbacks.addErrback());
+
+            batch.call('foo', [],callbacks.add(function(){
+              receivedCount++;
+            }),callbacks.addErrback());
+          
+            
+          },callbacks.add(function(results){
+            //all done!
+            //check that result is good!            
+            assertEquals(2,receivedCount);
+            assertEquals(2,results.length);
+
+          }),callbacks.addErrback());
+
+          //finally open the socket
+          client._ws_socket._open();
+        }
+      );
+
+      queue.call(function(){
+        // Restore the real WebSocket.
+        if (typeof savedWebSocket === 'function') {
+          window.WebSocket = savedWebSocket;
+        }
+      });
     }
   }
 );
