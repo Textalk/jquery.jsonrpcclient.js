@@ -99,11 +99,12 @@
     }
 
     $.ajax({
-      type     : 'POST',
-      url      : this.options.ajaxUrl,
-      data     : $.toJSON(request),
-      dataType : 'json',
-      cache    : false,
+      type       : 'POST',
+      url        : this.options.ajaxUrl,
+      contentType: "application/json",
+      data       : $.toJSON(request),
+      dataType   : 'json',
+      cache      : false,
 
       success  : function(data) {
         if ('error' in data) {
@@ -163,11 +164,12 @@
     }
 
     $.ajax({
-      type     : 'POST',
-      url      : this.options.ajaxUrl,
-      data     : $.toJSON(request),
-      dataType : 'json',
-      cache    : false
+      type       : 'POST',
+      url        : this.options.ajaxUrl,
+      contentType: "application/json",
+      data       : $.toJSON(request),
+      dataType   : 'json',
+      cache      : false
     });
   };
 
@@ -454,11 +456,12 @@
 
       // Send request
       $.ajax({
-        url      : self.jsonrpcclient.options.ajaxUrl,
-        data     : $.toJSON(batch_request),
-        dataType : 'json',
-        cache    : false,
-        type     : 'POST',
+        url        : self.jsonrpcclient.options.ajaxUrl,
+        contentType: "application/json",
+        data       : $.toJSON(batch_request),
+        dataType   : 'json',
+        cache      : false,
+        type       : 'POST',
 
         // Batch-requests should always return 200
         error    : function(jqXHR, textStatus, errorThrown) {
