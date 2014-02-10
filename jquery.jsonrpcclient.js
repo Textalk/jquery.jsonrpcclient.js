@@ -23,6 +23,7 @@
    *
    * @param options An object stating the backends:
    *                ajaxUrl    A url (relative or absolute) to a http(s) backend.
+   *                headers    An object that will be passed along to $.ajax in options.headers
    *                socketUrl  A url (relative of absolute) to a ws(s) backend.
    *                onmessage  A socket message handler for other messages (non-responses).
    *                onopen     A socket onopen handler. (Not used for custom getSocket.)
@@ -40,6 +41,7 @@
     var noop = function(){};
     this.options = $.extend({
       ajaxUrl     : null,
+      headers     : {},   ///< Optional additional headers to send in $.ajax request.
       socketUrl   : null, ///< WebSocket URL. (Not used if a custom getSocket is supplied.)
       onmessage   : noop, ///< Optional onmessage-handler for WebSocket.
       onopen      : noop, ///< Optional onopen-handler for WebSocket.
@@ -104,6 +106,7 @@
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false,
+      headers  : this.options.headers,
 
       success  : function(data) {
         if ('error' in data) {
@@ -167,7 +170,8 @@
       url      : this.options.ajaxUrl,
       data     : $.toJSON(request),
       dataType : 'json',
-      cache    : false
+      cache    : false,
+      headers  : this.options.headers
     });
   };
 
@@ -459,6 +463,7 @@
         dataType : 'json',
         cache    : false,
         type     : 'POST',
+        headers  : self.jsonrpcclient.options.headers,
 
         // Batch-requests should always return 200
         error    : function(jqXHR, textStatus, errorThrown) {
