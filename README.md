@@ -41,9 +41,6 @@ foo.batch(
 Each result will be paired with it's own callback.  The all_done_callback given first to batch is
 called when all other callbacks are done.
 
-NB: When a WebSocket is available, the all_done_cb will be called as soon as all request are
-dispatched.
-
 
 WebSocket
 ---------

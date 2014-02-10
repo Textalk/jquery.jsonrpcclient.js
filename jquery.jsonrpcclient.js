@@ -51,6 +51,9 @@
 
     // Declare an instance version of the onmessage callback to wrap 'this'.
     this.wsOnMessage = function(event) { self._wsOnMessage(event); };
+
+    //queue for ws request sent *before* ws is open.
+    this._ws_request_queue = [];
   };
 
   /// Holding the WebSocket on default getsocket.
@@ -230,17 +233,26 @@
     var request_json = $.toJSON(request);
 
     if (socket.readyState < 1) {
-      // The websocket is not open yet; we have to set sending of the message in onopen.
-      self = this; // In closure below, this is set to the WebSocket.  Use self instead.
 
-      // Set up sending of message for when the socket is open.
-      socket.onopen = function(event) {
-        // Hook for extra onopen callback
-        self.options.onopen(event);
-        
-        // Send the request.
-        socket.send(request_json);
-      };
+      //queue request
+      this._ws_request_queue.push(request_json);
+
+      if (!socket.onopen) {
+        // The websocket is not open yet; we have to set sending of the message in onopen.
+        var self = this; // In closure below, this is set to the WebSocket.  Use self instead.
+
+        // Set up sending of message for when the socket is open.
+        socket.onopen = function(event) {
+          // Hook for extra onopen callback
+          self.options.onopen(event);
+          
+          // Send queued requests.
+          for (var i=0; i<self._ws_request_queue.length; i++) {
+            socket.send(self._ws_request_queue[i]);
+          }
+          self._ws_request_queue = [];
+        };
+      }
     }
     else {
       // We have a socket and it should be ready to send on.
@@ -322,8 +334,7 @@
 
     this.jsonrpcclient = jsonrpcclient;
     this.all_done_cb = all_done_cb;
-    this.error_cb    = typeof error_cb === 'function' ? error_cb : function() {};
-
+    this.error_cb    = typeof error_cb    === 'function' ? error_cb : function(){};
   };
 
   /**
@@ -365,53 +376,97 @@
 
     // Collect all request data and sort handlers by request id.
     var batch_request = [];
-    var handlers = {};
+
 
     // If we have a WebSocket, just send the requests individually like normal calls.
     var socket = self.jsonrpcclient.options.getSocket(self.jsonrpcclient.wsOnMessage);
+    
     if (socket !== null) {
+      //we need to keep track of results for the all done callback
+      var expected_nr_of_cb = 0;
+      var cb_results = [];
+
+      var wrap_cb = function(cb) {
+        if (!self.all_done_cb) { //no all done callback? no need to keep track
+          return cb;
+        }
+
+        return function(data) {
+          cb(data);
+          cb_results.push(data);
+          expected_nr_of_cb--;
+          if (expected_nr_of_cb <= 0) {
+            //change order so that it maps to request order
+            var i;
+            var resultMap = {};
+            for (i=0;i<cb_results.length;i++) {
+              resultMap[cb_results[i].id] = cb_results[i];
+            }
+            var results = [];
+            for (i=0; i<self._requests.length; i++) {
+              if (resultMap[self._requests[i].id]) { 
+                results.push(resultMap[self._requests[i].id]);
+              }
+            }
+            //call all done!
+            self.all_done_cb(results);
+          }
+        };
+      };
+  
+
       for (var i = 0; i < this._requests.length; i++) {
         var call = this._requests[i];
-        self.jsonrpcclient._wsCall(socket, call.request, call.success_cb, call.error_cb);
+        
+        if ('id' in call.request) {
+          //we expect an answer
+          expected_nr_of_cb++;
+        }
+
+        self.jsonrpcclient._wsCall(socket, call.request, wrap_cb(call.success_cb), wrap_cb(call.error_cb));
       }
-      if (typeof all_done_cb === 'function') all_done_cb(result);
-      return;
-    }
+      
+     
 
-    for (var i = 0; i < this._requests.length; i++) {
-      var call = this._requests[i];
-      batch_request.push(call.request);
+    } else {
+      //no websocket, let's use ajax
+      var handlers = {};
 
-      // If the request has an id, it should handle returns (otherwise it's a notify).
-      if ('id' in call.request) {
-        handlers[call.request.id] = {
-          success_cb : call.success_cb,
-          error_cb   : call.error_cb
-        };
+      for (var i = 0; i < this._requests.length; i++) {
+        var call = this._requests[i];
+        batch_request.push(call.request);
+
+        // If the request has an id, it should handle returns (otherwise it's a notify).
+        if ('id' in call.request) {
+          handlers[call.request.id] = {
+            success_cb : call.success_cb,
+            error_cb   : call.error_cb
+          };
+        }
       }
+
+      var success_cb = function(data) { self._batchCb(data, handlers, self.all_done_cb); };
+
+      // No WebSocket, and no HTTP backend?  This won't work.
+      if (self.jsonrpcclient.options.ajaxUrl === null) {
+        throw "$.JsonRpcClient.batch used with no websocket and no http endpoint.";
+      }
+
+      // Send request
+      $.ajax({
+        url      : self.jsonrpcclient.options.ajaxUrl,
+        data     : $.toJSON(batch_request),
+        dataType : 'json',
+        cache    : false,
+        type     : 'POST',
+
+        // Batch-requests should always return 200
+        error    : function(jqXHR, textStatus, errorThrown) {
+          self.error_cb(jqXHR, textStatus, errorThrown);
+        },
+        success  : success_cb
+      });
     }
-
-    var success_cb = function(data) { self._batchCb(data, handlers, self.all_done_cb); };
-
-    // No WebSocket, and no HTTP backend?  This won't work.
-    if (self.jsonrpcclient.options.ajaxUrl === null) {
-      throw "$.JsonRpcClient.batch used with no websocket and no http endpoint.";
-    }
-
-    // Send request
-    $.ajax({
-      url      : self.jsonrpcclient.options.ajaxUrl,
-      data     : $.toJSON(batch_request),
-      dataType : 'json',
-      cache    : false,
-      type     : 'POST',
-
-      // Batch-requests should always return 200
-      error    : function(jqXHR, textStatus, errorThrown) {
-        self.error_cb(jqXHR, textStatus, errorThrown);
-      },
-      success  : success_cb
-    });
   };
 
   /**
@@ -441,5 +496,21 @@
 
     if (typeof all_done_cb === 'function') all_done_cb(result);
   };
+
+
+  //handles matching of calls to responses, triggering all donecallback
+  //if necessary
+  $.JsonRpcClient._batchObject.prototype._ws_on_cb_wrapper = function(callback){
+    return function(data){
+      //call the actual callback
+      callback(data);
+
+      //check for all done
+
+    };
+  };
+
+  
+
 
 })(jQuery);
