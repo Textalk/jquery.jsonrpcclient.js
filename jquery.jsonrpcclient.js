@@ -109,7 +109,7 @@
       headers  : this.options.headers,
 
       success  : function(data) {
-        if ('error' in data) {
+        if ('error' in data && data.error) {
           error_cb(data.error);
         }
         else {
