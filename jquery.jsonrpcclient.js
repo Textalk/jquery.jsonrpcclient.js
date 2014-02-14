@@ -281,7 +281,8 @@
     try {
       response = $.parseJSON(event.data);
     } catch (err){
-      this.options.onmessage(event); 
+      this.options.onmessage(event);
+      return; 
     }
 
     /// @todo Make using the jsonrcp 2.0 check optional, to use this on JSON-RPC 1 backends.
