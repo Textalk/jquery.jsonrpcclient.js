@@ -98,7 +98,7 @@
       throw "$.JsonRpcClient.call used with no websocket and no http endpoint.";
     }
 
-    $.ajax({
+    var deferred = $.ajax({
       type     : 'POST',
       url      : this.options.ajaxUrl,
       data     : $.toJSON(request),
@@ -128,6 +128,8 @@
         }
       }
     });
+
+    return deferred;
   };
 
   /**
@@ -162,13 +164,15 @@
       throw "$.JsonRpcClient.notify used with no websocket and no http endpoint.";
     }
 
-    $.ajax({
+    var deferred = $.ajax({
       type     : 'POST',
       url      : this.options.ajaxUrl,
       data     : $.toJSON(request),
       dataType : 'json',
       cache    : false
     });
+
+    return deferred;
   };
 
   /**
@@ -371,7 +375,8 @@
    */
   $.JsonRpcClient._batchObject.prototype._execute = function() {
     var self = this;
-
+    var deferred = null; // used to store and return the deffered that $.ajax returns
+ 
     if (this._requests.length === 0) return; // All done :P
 
     // Collect all request data and sort handlers by request id.
@@ -453,7 +458,7 @@
       }
 
       // Send request
-      $.ajax({
+      deferred = $.ajax({
         url      : self.jsonrpcclient.options.ajaxUrl,
         data     : $.toJSON(batch_request),
         dataType : 'json',
@@ -467,6 +472,8 @@
         success  : success_cb
       });
     }
+
+    return deferred;
   };
 
   /**
