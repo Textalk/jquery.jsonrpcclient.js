@@ -18,6 +18,8 @@ foo.call(
 );
 ```
 
+The `call` method will return the [deferred object](https://api.jquery.com/category/deferred-object/) that $.ajax returns, or null if websockets are used.
+
 Batch calls
 -----------
 
