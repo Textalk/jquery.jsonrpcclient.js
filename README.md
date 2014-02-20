@@ -83,10 +83,35 @@ The main purpose of this is to couple the client with a matching server, that ca
 from the backend.
 
 
-Test
-----
+Tests
+-----
+Tests are written using the framework [Mocha](https://github.com/visionmedia/mocha), with the help
+of [chai](https://github.com/chaijs/chai) for assertions and [sinon](http://sinonjs.org/) for spies,
+mocks and fake servers.
 
-The test-file is supposed to be run with [JsTestDriver](https://code.google.com/p/js-test-driver/).
+To run the test you can either use [Karma](http://karma-runner.github.io) or 
+[js-test-driver](https://code.google.com/p/js-test-driver/).
+
+*Karma setup*
+To run the tests with karma you need nodejs installed
+
+To install Karma and it's dependencies (we use mocha,sinon and chai as test frameworks, and phantomjs to run the tests)
+```bash
+$ sudo npm install -g karma
+$ cd jquery.jsonrpclient.js/
+$ npm install
+```
+
+Start karma, it will automaticaly run the tests and then watch for changes and rerun on each change.
+```bash
+$ karma start test/unit.conf.js
+```
+
+*js-test-driver*
+To run the test with js-test-driver you need java installed.
+
+To install download the jar from here 
+[google code](https://code.google.com/p/js-test-driver/downloads/list)
 
 To run the tests from the command line, use the following commands:
 
@@ -97,7 +122,8 @@ To run the tests from the command line, use the following commands:
     # Each browser you direct to that address will run the tests.
 
     # Step 3 - Run tests
-    java -jar /path/to/jsTestDriver.jar --reset --config jsTestDriver.conf --tests all
+    java -jar /path/to/jsTestDriver.jar --reset --config test/jsTestDriver.conf --tests all
+
 
 JSON-RPC 2.0
 ------------

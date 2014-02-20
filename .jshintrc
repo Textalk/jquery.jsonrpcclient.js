@@ -1,0 +1,20 @@
+{
+  "undef": true,
+  "unused": true,
+  "browser": true,
+  "globals": {
+    "console":false,
+    "jQuery": false,
+    "$":false,
+    "assertEquals": false,
+    "jstestdriver": false,
+    "assertTrue": false,
+    "assertFalse": false,
+    "describe": false,
+    "it":false,
+    "expect": false,
+    "sinon":false,
+    "beforeEach": false,
+    "afterEach": false
+  }
+}

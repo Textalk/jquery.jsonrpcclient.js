@@ -99,11 +99,12 @@
     }
 
     $.ajax({
-      type     : 'POST',
-      url      : this.options.ajaxUrl,
-      data     : $.toJSON(request),
-      dataType : 'json',
-      cache    : false,
+      type       : 'POST',
+      url        : this.options.ajaxUrl,
+      contentType: "application/json",
+      data       : $.toJSON(request),
+      dataType   : 'json',
+      cache      : false,
 
       success  : function(data) {
         if ('error' in data) {
@@ -163,11 +164,12 @@
     }
 
     $.ajax({
-      type     : 'POST',
-      url      : this.options.ajaxUrl,
-      data     : $.toJSON(request),
-      dataType : 'json',
-      cache    : false
+      type       : 'POST',
+      url        : this.options.ajaxUrl,
+      contentType: "application/json",
+      data       : $.toJSON(request),
+      dataType   : 'json',
+      cache      : false
     });
   };
 
@@ -279,7 +281,8 @@
     try {
       response = $.parseJSON(event.data);
     } catch (err){
-      this.options.onmessage(event); 
+      this.options.onmessage(event);
+      return; 
     }
 
     /// @todo Make using the jsonrcp 2.0 check optional, to use this on JSON-RPC 1 backends.
@@ -454,11 +457,12 @@
 
       // Send request
       $.ajax({
-        url      : self.jsonrpcclient.options.ajaxUrl,
-        data     : $.toJSON(batch_request),
-        dataType : 'json',
-        cache    : false,
-        type     : 'POST',
+        url        : self.jsonrpcclient.options.ajaxUrl,
+        contentType: "application/json",
+        data       : $.toJSON(batch_request),
+        dataType   : 'json',
+        cache      : false,
+        type       : 'POST',
 
         // Batch-requests should always return 200
         error    : function(jqXHR, textStatus, errorThrown) {
