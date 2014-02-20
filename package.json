@@ -4,7 +4,7 @@
   "description": "JSON-RPC 2.0 Client for HTTP and WebSocket backend",
   "main": "jquery.jsonrpcclient.js",
   "scripts": {
-    "test": "karma start unit/unit.conf.js"
+    "test": "karma start --single-run --browsers PhantomJS test/unit.conf.js"
   },
   "author": "Textalk AB http://textalk.se/",
   "license": "MIT",

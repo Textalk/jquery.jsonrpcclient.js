@@ -76,7 +76,7 @@
    */
   $.JsonRpcClient.prototype.call = function(method, params, success_cb, error_cb) {
     success_cb = typeof success_cb === 'function' ? success_cb : function(){};
-    error_cb   = typeof error_cb   === 'function' ? error_cb   : function(){}; 
+    error_cb   = typeof error_cb   === 'function' ? error_cb   : function(){};
 
     // Construct the JSON-RPC 2.0 request.
     var request = {
@@ -120,7 +120,7 @@
         try {
           var response = $.parseJSON(jqXHR.responseText);
           if ('console' in window) console.log(response);
-          
+
           error_cb(response.error);
         }
         catch (err) {
@@ -247,7 +247,7 @@
         socket.onopen = function(event) {
           // Hook for extra onopen callback
           self.options.onopen(event);
-          
+
           // Send queued requests.
           for (var i=0; i<self._ws_request_queue.length; i++) {
             socket.send(self._ws_request_queue[i]);
@@ -275,14 +275,14 @@
    * @param event The websocket onmessage-event.
    */
   $.JsonRpcClient.prototype._wsOnMessage = function(event) {
-    
+
     // Check if this could be a JSON RPC message.
     var response;
     try {
       response = $.parseJSON(event.data);
     } catch (err){
       this.options.onmessage(event);
-      return; 
+      return;
     }
 
     /// @todo Make using the jsonrcp 2.0 check optional, to use this on JSON-RPC 1 backends.
@@ -290,7 +290,7 @@
         && response.jsonrpc === '2.0') {
 
       /// @todo Handle bad response (without id).
-    
+
       // If this is an object with result, it is a response.
       if ('result' in response && this._ws_callbacks[response.id]) {
         // Get the success callback.
@@ -383,7 +383,7 @@
 
     // If we have a WebSocket, just send the requests individually like normal calls.
     var socket = self.jsonrpcclient.options.getSocket(self.jsonrpcclient.wsOnMessage);
-    
+
     if (socket !== null) {
       //we need to keep track of results for the all done callback
       var expected_nr_of_cb = 0;
@@ -407,7 +407,7 @@
             }
             var results = [];
             for (i=0; i<self._requests.length; i++) {
-              if (resultMap[self._requests[i].id]) { 
+              if (resultMap[self._requests[i].id]) {
                 results.push(resultMap[self._requests[i].id]);
               }
             }
@@ -416,11 +416,11 @@
           }
         };
       };
-  
+
 
       for (var i = 0; i < this._requests.length; i++) {
         var call = this._requests[i];
-        
+
         if ('id' in call.request) {
           //we expect an answer
           expected_nr_of_cb++;
@@ -428,8 +428,8 @@
 
         self.jsonrpcclient._wsCall(socket, call.request, wrap_cb(call.success_cb), wrap_cb(call.error_cb));
       }
-      
-     
+
+
 
     } else {
       //no websocket, let's use ajax
@@ -514,7 +514,7 @@
     };
   };
 
-  
+
 
 
 })(jQuery);
