@@ -75,6 +75,8 @@
    * @param params     The params; an array or object.
    * @param success_cb A callback for successful request.
    * @param error_cb   A callback for error.
+   *
+   * @return {object} Returns the deferred object that $.ajax returns or {null} if websockets are used
    */
   $.JsonRpcClient.prototype.call = function(method, params, success_cb, error_cb) {
     success_cb = typeof success_cb === 'function' ? success_cb : function(){};
@@ -92,7 +94,7 @@
     var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
       this._wsCall(socket, request, success_cb, error_cb);
-      return;
+      return null;
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
@@ -100,7 +102,7 @@
       throw "$.JsonRpcClient.call used with no websocket and no http endpoint.";
     }
 
-    $.ajax({
+    var deferred = $.ajax({
       type       : 'POST',
       url        : this.options.ajaxUrl,
       contentType: "application/json",
@@ -132,6 +134,8 @@
         }
       }
     });
+
+    return deferred;
   };
 
   /**
@@ -145,6 +149,8 @@
    *
    * @param method     The method to run on JSON-RPC server.
    * @param params     The params; an array or object.
+   *
+   * @return {object} Returns the deferred object that $.ajax returns or {null} if websockets are used
    */
   $.JsonRpcClient.prototype.notify = function(method, params) {
     // Construct the JSON-RPC 2.0 request.
@@ -158,7 +164,7 @@
     var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
       this._wsCall(socket, request);
-      return;
+      return null;
     }
 
     // No WebSocket, and no HTTP backend?  This won't work.
@@ -166,7 +172,7 @@
       throw "$.JsonRpcClient.notify used with no websocket and no http endpoint.";
     }
 
-    $.ajax({
+    var deferred = $.ajax({
       type       : 'POST',
       url        : this.options.ajaxUrl,
       contentType: "application/json",
@@ -175,6 +181,8 @@
       cache      : false,
       headers  : this.options.headers
     });
+
+    return deferred;
   };
 
   /**
@@ -375,10 +383,13 @@
 
   /**
    * Executes the batched up calls.
+   * 
+   * @return {object} Returns the deferred object that $.ajax returns or {null} if websockets are used
    */
   $.JsonRpcClient._batchObject.prototype._execute = function() {
     var self = this;
-
+    var deferred = null; // used to store and return the deffered that $.ajax returns
+ 
     if (this._requests.length === 0) return; // All done :P
 
     // Collect all request data and sort handlers by request id.
@@ -433,7 +444,7 @@
         self.jsonrpcclient._wsCall(socket, call.request, wrap_cb(call.success_cb), wrap_cb(call.error_cb));
       }
 
-
+      return null;
 
     } else {
       //no websocket, let's use ajax
@@ -460,7 +471,7 @@
       }
 
       // Send request
-      $.ajax({
+      deferred = $.ajax({
         url        : self.jsonrpcclient.options.ajaxUrl,
         contentType: "application/json",
         data       : $.toJSON(batch_request),
@@ -475,7 +486,11 @@
         },
         success  : success_cb
       });
+
+      return deferred;
+
     }
+
   };
 
   /**

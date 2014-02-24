@@ -485,9 +485,9 @@ describe('Unit test of json rpc client', function() {
 
   });
 
-    // testBadBackend
+    // test headers see issue #21
   it('should pass extra headers to the $.ajax', function(done) {
-    
+
     var client = new $.JsonRpcClient({ ajaxUrl: '/echoheaders', headers: { 'Roadkill-Quality':'high' } });
     var failure = sinon.stub().throws('Failure should not be called!');
 
@@ -498,5 +498,33 @@ describe('Unit test of json rpc client', function() {
 
   });
 
+  //see issue #20
+  it('should return a jQuery Promise on "call"', function() {
+    var client = new $.JsonRpcClient({ ajaxUrl: '/giveme404' });
+
+    var promise = client.call('foo', []);
+    expect(promise).to.be.an('object');
+    expect(promise.then).to.be.a('function');
+
+  });
+
+  //see issue #20
+  it('should return null on "call" when WebSockets are used', function() {
+
+    window.WebSocket = function() {
+      this.onopen     = null;
+      this.onmessage  = null;
+      this.onclose    = null;
+      this.onerror    = null;
+      this.send = function() {};
+    };
+
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/'
+    });
+
+    var notPromise = client.call('foo', []);
+    expect(notPromise).to.equal(null);
+  });
 
 });
