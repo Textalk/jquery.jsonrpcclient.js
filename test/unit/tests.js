@@ -37,7 +37,6 @@ describe('Unit test of json rpc client', function() {
     server.respondWith('GET', '/giveme404', [404, {}, ""]);
     server.respondWith('POST', '/giveme404', [404, {}, ""]);
 
-
     // helper to create right json-rpc responce
     var createResponse = function(rpc) {
       var result  = { jsonrpc: "2.0" };
@@ -71,7 +70,6 @@ describe('Unit test of json rpc client', function() {
       else {
         result = createResponse(rpc);
       }
-
       req.respond(200, { "Content-Type": "text/json"}, JSON.stringify(result));
     });
 
@@ -91,15 +89,26 @@ describe('Unit test of json rpc client', function() {
         var tmp = result[result.length-1];
         result[result.length-1] = result[0];
         result[0] = tmp;
-
-
-
       }
       else {
         result = createResponse(rpc);
       }
       req.respond(200, { "Content-Type": "text/json"}, JSON.stringify(result));
     });
+
+
+    server.respondWith('POST', '/echoheaders', function(req){
+      var rpc = JSON.parse(req.requestBody);
+      var result = { 
+        id: rpc.id,
+        result: req.requestHeaders,
+        jsonrpc: "2.0" 
+      };
+      
+      req.respond(200, { "Content-Type": "text/json"}, JSON.stringify(result));
+    });
+
+
 
 
   });
@@ -475,4 +484,47 @@ describe('Unit test of json rpc client', function() {
     client._ws_socket._open();
 
   });
+
+    // test headers see issue #21
+  it('should pass extra headers to the $.ajax', function(done) {
+
+    var client = new $.JsonRpcClient({ ajaxUrl: '/echoheaders', headers: { 'Roadkill-Quality':'high' } });
+    var failure = sinon.stub().throws('Failure should not be called!');
+
+    client.call('foo', [],function(headers) {
+      expect(headers['Roadkill-Quality']).to.be.equal('high');
+      done();
+    },failure);
+
+  });
+
+  //see issue #20
+  it('should return a jQuery Promise on "call"', function() {
+    var client = new $.JsonRpcClient({ ajaxUrl: '/giveme404' });
+
+    var promise = client.call('foo', []);
+    expect(promise).to.be.an('object');
+    expect(promise.then).to.be.a('function');
+
+  });
+
+  //see issue #20
+  it('should return null on "call" when WebSockets are used', function() {
+
+    window.WebSocket = function() {
+      this.onopen     = null;
+      this.onmessage  = null;
+      this.onclose    = null;
+      this.onerror    = null;
+      this.send = function() {};
+    };
+
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/'
+    });
+
+    var notPromise = client.call('foo', []);
+    expect(notPromise).to.equal(null);
+  });
+
 });

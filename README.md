@@ -18,6 +18,8 @@ foo.call(
 );
 ```
 
+The `call` method will return the [deferred object](https://api.jquery.com/category/deferred-object/) that $.ajax returns, or null if websockets are used.
+
 Batch calls
 -----------
 
@@ -40,6 +42,26 @@ foo.batch(
 ```
 Each result will be paired with it's own callback.  The all_done_callback given first to batch is
 called when all other callbacks are done.
+
+
+$.JsonRpcClient Options
+-----------------------
+
+`ajaxUrl` **string** The URL to use when making requests over HTTP.
+
+`headers` **object** HTTP headers to be passed to $.ajax when making requests over HTTP.
+
+`socketUrl` **string** The URL to use when making requests over WSS (web sockets). Not used if a custom `getSocket` is supplied.
+
+`onmessage` **function** Optional onmessage-handler for WebSocket for any non JSON-RPC messages.
+
+`onopen` **function** Optional onopen-handler for WebSocket.
+
+`onclose` **function** Optional onclose-handler for WebSocket.
+
+`onerror` **function** Optional onerror-handler for WebSocket.
+
+`getSocket` **function** Custom socket supplier for using an already existing socket.
 
 
 WebSocket
