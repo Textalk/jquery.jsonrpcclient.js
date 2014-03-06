@@ -1,6 +1,9 @@
 JSON-RPC 2.0 Client for HTTP and WebSocket backends
 ===================================================
 
+[![Build Status](https://travis-ci.org/Textalk/jquery.jsonrpcclient.js.png?branch=master)](https://travis-ci.org/Textalk/jquery.jsonrpcclient.js)
+[![Coverage Status](https://coveralls.io/repos/Textalk/jquery.jsonrpcclient.js/badge.png?branch=master)](https://coveralls.io/r/Textalk/jquery.jsonrpcclient.js)
+
 This plugin requires jquery.json.js to be available, or at least the methods $.toJSON and
 $.parseJSON.
 
@@ -111,7 +114,7 @@ Tests are written using the framework [Mocha](https://github.com/visionmedia/moc
 of [chai](https://github.com/chaijs/chai) for assertions and [sinon](http://sinonjs.org/) for spies,
 mocks and fake servers.
 
-To run the test you can either use [Karma](http://karma-runner.github.io) or 
+To run the test you can either use [Karma](http://karma-runner.github.io) or
 [js-test-driver](https://code.google.com/p/js-test-driver/).
 
 *Karma setup*
@@ -132,7 +135,7 @@ $ karma start test/unit.conf.js
 *js-test-driver*
 To run the test with js-test-driver you need java installed.
 
-To install download the jar from here 
+To install download the jar from here
 [google code](https://code.google.com/p/js-test-driver/downloads/list)
 
 To run the tests from the command line, use the following commands:

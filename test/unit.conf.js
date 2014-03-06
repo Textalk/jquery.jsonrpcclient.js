@@ -22,7 +22,7 @@ module.exports = function(config) {
 
     // list of files to exclude
     exclude: [
-      
+
     ],
 
 
@@ -39,10 +39,8 @@ module.exports = function(config) {
 
     // optionally, configure the reporter
     coverageReporter: {
-      type : 'html',
-      dir : 'coverage/'
+      type : 'lcov', dir : 'coverage/'
     },
-
 
     // web server port
     port: 9876,
