@@ -15,6 +15,7 @@
     "jquery": "~2.1.0",
     "karma-coverage": "~0.1.5",
     "coveralls": "~2.8.0",
-    "mocha-lcov-reporter": "0.0.1"
+    "mocha-lcov-reporter": "0.0.1",
+    "karma-growler-reporter": "0.0.1"
   }
 }
