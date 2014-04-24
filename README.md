@@ -4,10 +4,9 @@ JSON-RPC 2.0 Client for HTTP and WebSocket backends
 [![Build Status](https://travis-ci.org/Textalk/jquery.jsonrpcclient.js.png?branch=master)](https://travis-ci.org/Textalk/jquery.jsonrpcclient.js)
 [![Coverage Status](https://coveralls.io/repos/Textalk/jquery.jsonrpcclient.js/badge.png?branch=master)](https://coveralls.io/r/Textalk/jquery.jsonrpcclient.js)
 
-This plugin requires jquery.json.js to be available, or at least the methods $.toJSON and
-$.parseJSON.
+This plugin requires JSON.parse and JSONstringify, otherwise it falls back to $.toJSON and $.parseJSON.
 
-The plan is to make use of websockets if they are available, but work just as well with only
+JsonRpcClient uses websockets if they are available, but will work just as well with only
 http if not.
 
 Usage example:

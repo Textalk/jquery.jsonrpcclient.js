@@ -12,17 +12,10 @@
     };
   }
 
+//some tests depend on killing JSON, but we need it in the fake server.
+var MYJSON = JSON;
 
 describe('Unit test of json rpc client', function() {
-
-  // patch $.toJSON and $.parseJSON
-  if (!$.toJSON && window.JSON) {
-    $.toJSON = JSON.stringify;
-  }
-
-  if (!$.parseJSON && window.JSON) {
-    $.parseJSON = JSON.parse;
-  }
 
   // setup fake xhr server
   var server, savedWebSocket;
@@ -36,6 +29,7 @@ describe('Unit test of json rpc client', function() {
     // setup some standard responses that can be reused throuout the tests
     server.respondWith('GET', '/giveme404', [404, {}, ""]);
     server.respondWith('POST', '/giveme404', [404, {}, ""]);
+    server.respondWith('POST', '/giveme500', [500, {}, ""]);
 
     // helper to create right json-rpc responce
     var createResponse = function(rpc) {
@@ -56,9 +50,8 @@ describe('Unit test of json rpc client', function() {
       return result;
     };
 
-    // some good responses
-    server.respondWith('POST', '/rpc', function(req) {
-      var rpc = JSON.parse(req.requestBody);
+    var handleRpc = function(req,code) {
+      var rpc = MYJSON.parse(req.requestBody);
       // rpc can be an array on batched requests
       var result;
       if ( Object.prototype.toString.call(rpc) === "[object Array]") {
@@ -70,12 +63,22 @@ describe('Unit test of json rpc client', function() {
       else {
         result = createResponse(rpc);
       }
-      req.respond(200, { "Content-Type": "text/json"}, JSON.stringify(result));
+      req.respond(code, { "Content-Type": "text/json"}, MYJSON.stringify(result));
+    };
+
+
+    server.respondWith('POST', '/rpc-500', function(req){
+      handleRpc(req,500);
+    });
+
+    // some good responses
+    server.respondWith('POST', '/rpc', function(req) {
+      handleRpc(req,200);
     });
 
 
     server.respondWith('POST', '/rpc-jumbled', function(req) {
-      var rpc = JSON.parse(req.requestBody);
+      var rpc = MYJSON.parse(req.requestBody);
 
       // rpc can be an array on batched requests
       var result;
@@ -93,19 +96,19 @@ describe('Unit test of json rpc client', function() {
       else {
         result = createResponse(rpc);
       }
-      req.respond(200, { "Content-Type": "text/json"}, JSON.stringify(result));
+      req.respond(200, { "Content-Type": "text/json"}, MYJSON.stringify(result));
     });
 
 
     server.respondWith('POST', '/echoheaders', function(req){
-      var rpc = JSON.parse(req.requestBody);
+      var rpc = MYJSON.parse(req.requestBody);
       var result = { 
         id: rpc.id,
         result: req.requestHeaders,
         jsonrpc: "2.0" 
       };
       
-      req.respond(200, { "Content-Type": "text/json"}, JSON.stringify(result));
+      req.respond(200, { "Content-Type": "text/json"}, MYJSON.stringify(result));
     });
 
 
@@ -127,7 +130,7 @@ describe('Unit test of json rpc client', function() {
 
 
   // testBadBackend
-  it('should call error callback on a bad backend', function(done) {
+  it('should call error callback on a bad backend, with 404', function(done) {
     // this.timeout(500);
     // Setup a test client with a bad backend
     var client = new $.JsonRpcClient({ ajaxUrl: '/giveme404' });
@@ -139,6 +142,21 @@ describe('Unit test of json rpc client', function() {
     });
 
   });
+
+  it('should call error callback on a bad backend, with 500', function(done) {
+    // this.timeout(500);
+    // Setup a test client with a bad backend
+    var client = new $.JsonRpcClient({ ajaxUrl: '/giveme404' });
+
+    var success = sinon.stub().throws('Success should not be called!');
+
+    client.call('foo', [], success, function() {
+      done();
+    });
+
+  });
+
+
 
 
   // testBatchErrorInHttp
@@ -158,6 +176,11 @@ describe('Unit test of json rpc client', function() {
   });
 
   // testBatcHttp
+  it('should handle empty batch without throwing an error', function() {
+    var client = new $.JsonRpcClient({ ajaxUrl: '/rpc-jumbled' });
+    client.batch(function() {});
+  });
+
   it('should give the right success callback when doing batched XHR requests', function(done) {
     var client = new $.JsonRpcClient({ ajaxUrl: '/rpc-jumbled' });
 
@@ -169,16 +192,16 @@ describe('Unit test of json rpc client', function() {
 
     client.batch(function(batch) {
       batch.call('foo', [], cb1, dontCall);
-      batch.call('foo', [], cb2, dontCall);
+      batch.call('error', [], dontCall, cb2);
       batch.call('foo', [], cb3, dontCall);
     }, function() {
       // all done
       expect(cb1.calledOnce).to.be.true;
       expect(cb2.calledOnce).to.be.true;
       expect(cb3.calledOnce).to.be.true;
-
+      
       expect(cb1.getCall(0).args[0].id).to.be.equal(1);
-      expect(cb2.getCall(0).args[0].id).to.be.equal(2);
+      expect(cb2.getCall(0).args[0].message).to.be.equal('Your half hour is up');
       expect(cb3.getCall(0).args[0].id).to.be.equal(3);
       done();
     }, dontCall);
@@ -188,6 +211,11 @@ describe('Unit test of json rpc client', function() {
 
 
   // testCall
+  it('should handle a doing a call without any handlers', function() {
+    var client = new $.JsonRpcClient({ ajaxUrl: '/rpc' });
+    client.call('foo', []);
+  });
+
   it('should handle a JSON-RPC response and call the success handler', function(done) {
     var client = new $.JsonRpcClient({ ajaxUrl: '/rpc' });
     client.call('foo', [], function(result) {
@@ -196,6 +224,24 @@ describe('Unit test of json rpc client', function() {
     }, sinon.stub().throws());
 
   });
+
+
+  it('should handle a JSON-RPC response and call the error handler on JSON-RPC error', function(done) {
+    var client = new $.JsonRpcClient({ ajaxUrl: '/rpc' });
+    client.call('error', [], sinon.stub().throws(),function(error) {
+      expect(error.message).to.be.equal("Your half hour is up");
+      done();
+    }, sinon.stub().throws());
+  });
+
+  it('should handle a JSON-RPC response and call the error handler on JSON-RPC error, 500 version', function(done) {
+    var client = new $.JsonRpcClient({ ajaxUrl: '/rpc-500' });
+    client.call('error', [], sinon.stub().throws(),function(error) {
+      expect(error.message).to.be.equal("Your half hour is up");
+      done();
+    }, sinon.stub().throws());
+  });
+
 
 
   // testNotify
@@ -212,6 +258,15 @@ describe('Unit test of json rpc client', function() {
       expect(result.xhr).to.be.true;
       done();
     }, sinon.stub().throws());
+  });
+
+  it('should fail when browser does not support WebSocket anf HTTP endpoint is defined', function() {
+    var client = new $.JsonRpcClient({  getSocket: function() { return null; } });
+    expect(function(){ client.call('foo', []); }).to.throw();
+    expect(function(){ client.notify('foo', []); }).to.throw();
+    expect(function(){ client.batch(function(b){
+      b.notify('foo',[]);
+    }); }).to.throw();
   });
 
   // testDefaultGetsocket
@@ -259,7 +314,7 @@ describe('Unit test of json rpc client', function() {
         if (typeof old_onopen === 'function') {
           client._ws_socket.onopen = function(event) {
             old_onopen(event); // chain in the already added onopen handler.
-            client._ws_socket.send($.toJSON({
+            client._ws_socket.send(MYJSON.stringify({
               jsonrpc: '2.0',
               result: "baz",
               id: client._current_id - 1 // match the last requests id
@@ -360,9 +415,9 @@ describe('Unit test of json rpc client', function() {
         setTimeout(function() {
           // fake a json response
           that.onmessage({
-            data: $.toJSON({
+            data: MYJSON.stringify({
               jsonrpc: "2.0",
-              id: $.parseJSON(data).id,
+              id: MYJSON.parse(data).id,
               result: "foobar"
             })
           });
@@ -450,9 +505,9 @@ describe('Unit test of json rpc client', function() {
         setTimeout(function() {
           // fake a json response
           that.onmessage({
-            data: $.toJSON({
+            data: MYJSON.stringify({
               jsonrpc: "2.0",
-              id: $.parseJSON(data).id,
+              id: MYJSON.parse(data).id,
               result: "foobar"
             })
           });
@@ -527,4 +582,30 @@ describe('Unit test of json rpc client', function() {
     expect(notPromise).to.equal(null);
   });
 
+
+
+  describe('with jquery.json',function(){
+
+    it('should use $.toJSON and $.parseJSON if JSON is not present',function(){
+
+      $.toJSON = function(){};      
+      $.parseJSON = function(){};
+
+      //Kill JSON
+      window.JSON = null;
+
+      var client = new $.JsonRpcClient({ ajaxUrl: '/rpc' });
+    
+      window.JSON = MYJSON; //restore again, since chaijs depends on it!
+
+      expect(client.JSON.stringify).to.be.equal($.toJSON);
+      expect(client.JSON.parse).to.be.equal($.parseJSON);
+
+    });
+
+  });
+
 });
+
+
+
