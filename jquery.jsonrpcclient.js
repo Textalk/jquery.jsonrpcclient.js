@@ -4,7 +4,7 @@
  * A JSON RPC Client that uses WebSockets if available otherwise fallbacks to ajax.
  * Depends on JSON, if browser lacks native support either use JSON3 or jquery.json.
  * Usage example:
- *   
+ *
  *   var foo = new $.JsonRpcClient({ ajaxUrl: '/backend/jsonrpc' });
  *   foo.call(
  *     'bar', [ 'A parameter', 'B parameter' ],
