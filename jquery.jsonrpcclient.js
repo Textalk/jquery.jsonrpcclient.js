@@ -125,7 +125,7 @@
       headers  : this.options.headers,
 
       success  : function(data) {
-        if ('error' in data) {
+        if ('error' in data && data.error != null) {
           error_cb(data.error);
         }
         else {
