@@ -53,6 +53,8 @@ $.JsonRpcClient Options
 
 `headers` **object** HTTP headers to be passed to $.ajax when making requests over HTTP.
 
+`xhrFields` **object**  An object that will be passed along to $.ajax in options.xhrFields
+
 `socketUrl` **string** The URL to use when making requests over WSS (web sockets). Not used if a custom `getSocket` is supplied.
 
 `onmessage` **function** Optional onmessage-handler for WebSocket for any non JSON-RPC messages.
