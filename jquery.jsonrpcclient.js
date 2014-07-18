@@ -24,6 +24,7 @@
    * @param options An object stating the backends:
    *                ajaxUrl    A url (relative or absolute) to a http(s) backend.
    *                headers    An object that will be passed along to $.ajax in options.headers
+   *                xhrFields  An object that will be passed along to $.ajax in options.xhrFields
    *                socketUrl  A url (relative of absolute) to a ws(s) backend.
    *                onmessage  A socket message handler for other messages (non-responses).
    *                onopen     A socket onopen handler. (Not used for custom getSocket.)
@@ -122,7 +123,8 @@
       data       : this.JSON.stringify(request),
       dataType   : 'json',
       cache      : false,
-      headers  : this.options.headers,
+      headers    : this.options.headers,
+      xhrFields  : this.options.xhrFields,
 
       success  : function(data) {
         if ('error' in data) {
@@ -192,7 +194,8 @@
       data       : this.JSON.stringify(request),
       dataType   : 'json',
       cache      : false,
-      headers  : this.options.headers
+      headers    : this.options.headers,
+      xhrFields  : this.options.xhrFields
     });
 
     return deferred;
@@ -491,7 +494,8 @@
         dataType   : 'json',
         cache      : false,
         type       : 'POST',
-        headers  : self.jsonrpcclient.options.headers,
+        headers    : self.jsonrpcclient.options.headers,
+        xhrFields  : self.jsonrpcclient.options.xhrFields,
 
         // Batch-requests should always return 200
         error    : function(jqXHR, textStatus, errorThrown) {
