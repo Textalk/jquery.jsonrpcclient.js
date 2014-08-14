@@ -9,14 +9,15 @@
   "author": "Textalk AB http://textalk.se/",
   "license": "MIT",
   "devDependencies": {
-    "karma":                  "~0.12.21",
-    "karma-mocha":            "~0.1.1",
-    "karma-chai-sinon":       "~0.1.1",
-    "jquery":                 "~2.1.0",
-    "karma-coverage":         "~0.1.5",
-    "coveralls":              "~2.8.0",
-    "mocha-lcov-reporter":    "0.0.1",
+    "karma": "~0.12.21",
+    "karma-mocha": "~0.1.1",
+    "karma-chai-sinon": "~0.1.1",
+    "jquery": "~2.1.0",
+    "karma-coverage": "~0.1.5",
+    "coveralls": "~2.8.0",
+    "mocha-lcov-reporter": "0.0.1",
     "karma-growler-reporter": "0.0.1",
-    "jscs":                   "~1.5.9"
+    "jscs": "~1.5.9",
+    "karma-phantomjs-launcher": "^0.1.4"
   }
 }
