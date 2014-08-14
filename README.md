@@ -156,3 +156,11 @@ JSON-RPC 2.0 is a very simple protocol for remote procedure calls, agnostic of c
 websocket, tcp, whatever…).
 
 [JSON-RPC 2.0 Specification](http://www.jsonrpc.org/specification)
+
+
+Contributing
+------------
+
+Use [Google code standard](https://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml)
+or at least the part of it that [JSCS](https://github.com/mdevils/node-jscs) validates, but with a
+line length of 100 chars.
