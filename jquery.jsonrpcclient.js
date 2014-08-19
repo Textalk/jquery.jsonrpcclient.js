@@ -53,7 +53,7 @@
     // Declare an instance version of the onmessage callback to wrap 'this'.
     this.wsOnMessage = function(event) { self._wsOnMessage(event); };
 
-    //queue for ws request sent *before* ws is open.
+    // queue for ws request sent *before* ws is open.
     this._wsRequestQueue = [];
 
     if (!window.JSON && $ && $.toJSON) {
@@ -125,8 +125,7 @@
       success    : function(data) {
         if ('error' in data) {
           errorCb(data.error);
-        }
-        else {
+        } else {
           successCb(data.result);
         }
       },
@@ -259,7 +258,7 @@
 
     if (socket.readyState < 1) {
 
-      //queue request
+      // Queue request
       this._wsRequestQueue.push(requestJson);
 
       if (!socket.onopen) {
@@ -278,8 +277,7 @@
           self._wsRequestQueue = [];
         };
       }
-    }
-    else {
+    } else {
       // We have a socket and it should be ready to send on.
       socket.send(requestJson);
     }
@@ -397,7 +395,7 @@
    */
   JsonRpcClient._batchObject.prototype._execute = function() {
     var self = this;
-    var deferred = null; // used to store and return the deffered that $.ajax returns
+    var deferred = null; // Used to store and return the deffered that $.ajax returns
 
     if (this._requests.length === 0) { return; } // All done :P
 
@@ -408,12 +406,12 @@
     var socket = self.jsonrpcclient.options.getSocket(self.jsonrpcclient.wsOnMessage);
 
     if (socket !== null) {
-      //we need to keep track of results for the all done callback
+      // We need to keep track of results for the all done callback
       var expectedNrOfCb = 0;
       var cbResults = [];
 
       var wrapCb = function(cb) {
-        if (!self.allDoneCb) { //no all done callback? no need to keep track
+        if (!self.allDoneCb) { // No all done callback? no need to keep track
           return cb;
         }
 
@@ -422,10 +420,10 @@
           cbResults.push(data);
           expectedNrOfCb--;
           if (expectedNrOfCb <= 0) {
-            //change order so that it maps to request order
+            // Change order so that it maps to request order
             var i;
             var resultMap = {};
-            for (i = 0; i < cbResults.length;i++) {
+            for (i = 0; i < cbResults.length; i++) {
               resultMap[cbResults[i].id] = cbResults[i];
             }
             var results = [];
@@ -434,7 +432,7 @@
                 results.push(resultMap[self._requests[i].id]);
               }
             }
-            //call all done!
+            // Call all done!
             self.allDoneCb(results);
           }
         };
@@ -444,7 +442,7 @@
         var call = this._requests[i];
 
         if ('id' in call.request) {
-          //we expect an answer
+          // We expect an answer
           expectedNrOfCb++;
         }
 
@@ -454,9 +452,8 @@
       }
 
       return null;
-    }
-    else {
-      //no websocket, let's use ajax
+    } else {
+      // No websocket, let's use ajax
       var handlers = {};
 
       for (var i = 0; i < this._requests.length; i++) {
@@ -517,17 +514,14 @@
         if (response.id === null || !(response.id in handlers)) {
           // An error on a notify?  Just log it to the console.
           if ('console' in window) { console.log(response); }
-        }
-        else {
+        } else {
           handlers[response.id].errorCb(response.error);
         }
-      }
-      else {
+      } else {
         // Here we should always have a correct id and no error.
         if (!(response.id in handlers) && 'console' in window) {
           console.log(response);
-        }
-        else {
+        } else {
           handlers[response.id].successCb(response.result);
         }
       }

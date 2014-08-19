@@ -12,26 +12,26 @@
     };
   }
 
-//some tests depend on killing JSON, but we need it in the fake server.
+// Some tests depend on killing JSON, but we need it in the fake server.
 var MYJSON = JSON;
 
 describe('Unit test of json rpc client', function() {
 
-  // setup fake xhr server
+  // Setup fake xhr server
   var server, savedWebSocket;
   beforeEach(function() {
     server = sinon.fakeServer.create();
-    savedWebSocket = window.WebSocket; // some test override the ws
+    savedWebSocket = window.WebSocket; // Some test override the ws
 
-    // autorespond after 10ms!
+    // Autorespond after 10ms!
     server.autoRespond = true;
 
-    // setup some standard responses that can be reused throuout the tests
+    // Setup some standard responses that can be reused throuout the tests
     server.respondWith('GET',  '/giveme404', [404, {}, '']);
     server.respondWith('POST', '/giveme404', [404, {}, '']);
     server.respondWith('POST', '/giveme500', [500, {}, '']);
 
-    // helper to create right json-rpc responce
+    // Helper to create right json-rpc responce
     var createResponse = function(rpc) {
       var result  = {jsonrpc: '2.0'};
 
@@ -70,7 +70,7 @@ describe('Unit test of json rpc client', function() {
       handleRpc(req, 500);
     });
 
-    // some good responses
+    // Some good responses
     server.respondWith('POST', '/rpc', function(req) {
       handleRpc(req, 200);
     });
@@ -86,7 +86,7 @@ describe('Unit test of json rpc client', function() {
           result.push(createResponse(rpc[i]));
         }
 
-        // mix it up a bit
+        // Mix it up a bit
         var tmp = result[result.length - 1];
         result[result.length - 1] = result[0];
         result[0] = tmp;
@@ -115,13 +115,11 @@ describe('Unit test of json rpc client', function() {
     window.WebSocket = savedWebSocket;
   });
 
-  // testNew
   it('should be an obect', function() {
     var test = new $.JsonRpcClient({ajaxUrl: '/giveme404'});
     expect(test).to.be.a('object');
   });
 
-  // testBadBackend
   it('should call error callback on a bad backend, with 404', function(done) {
     // this.timeout(500);
     // Setup a test client with a bad backend
@@ -136,7 +134,6 @@ describe('Unit test of json rpc client', function() {
   });
 
   it('should call error callback on a bad backend, with 500', function(done) {
-    // this.timeout(500);
     // Setup a test client with a bad backend
     var client = new $.JsonRpcClient({ajaxUrl: '/giveme404'});
 
@@ -148,11 +145,10 @@ describe('Unit test of json rpc client', function() {
 
   });
 
-  // testBatchErrorInHttp
   it(
     'should call batch error callback on non existing backend, not individual error callbacks',
     function(done) {
-      this.timeout(500); // if no callback is called time out
+      this.timeout(500); // If no callback is called time out
 
       var client = new $.JsonRpcClient({ajaxUrl: '/giveme404'});
       var dontCall = sinon.stub().throws('Should not be called');
@@ -161,13 +157,12 @@ describe('Unit test of json rpc client', function() {
         batch.call('foo', [], dontCall, dontCall);
         batch.call('bar', [], dontCall, dontCall);
       }, dontCall, function() {
-        // called! nice :-)
+        // Called! nice :-)
         done();
       });
     }
   );
 
-  // testBatcHttp
   it('should handle empty batch without throwing an error', function() {
     var client = new $.JsonRpcClient({ajaxUrl: '/rpc-jumbled'});
     client.batch(function() {});
@@ -187,7 +182,7 @@ describe('Unit test of json rpc client', function() {
       batch.call('error', [], dontCall, cb2);
       batch.call('foo', [], cb3, dontCall);
     }, function() {
-      // all done
+      // All done
       expect(cb1.calledOnce).to.be.true;
       expect(cb2.calledOnce).to.be.true;
       expect(cb3.calledOnce).to.be.true;
@@ -200,7 +195,6 @@ describe('Unit test of json rpc client', function() {
 
   });
 
-  // testCall
   it('should handle a doing a call without any handlers', function() {
     var client = new $.JsonRpcClient({ajaxUrl: '/rpc'});
     client.call('foo', []);
@@ -237,14 +231,12 @@ describe('Unit test of json rpc client', function() {
     }
   );
 
-  // testNotify
   // TODO: this doesn't test much
   it('should handle a JSON-RPC not fail when doing notify', function() {
     var client = new $.JsonRpcClient({ajaxUrl: '/rpc'});
     client.notify('foo', []);
   });
 
-  // testNoWebSocket
   it('should use XHR request when browser does not support WebSocket', function(done) {
     var client = new $.JsonRpcClient({ajaxUrl: '/rpc', getSocket: function() { return null; }});
     client.call('foo', [], function(result) {
@@ -265,13 +257,12 @@ describe('Unit test of json rpc client', function() {
     }
   );
 
-  // testDefaultGetsocket
   if (window.WebSocket) {
     it('should use WebSockets when available', function(done) {
       var dontCall = sinon.stub().throws();
 
-      // echo service doesn't reply with a proper JSON-RPC
-      // so we use the onmessage handler to check for succe
+      // Echo service doesn't reply with a proper JSON-RPC so we use the onmessage handler to check
+      // for success
       var client = new $.JsonRpcClient({
         socketUrl: 'ws://echo.websocket.org/',
         onmessage: function(result) {
@@ -286,14 +277,13 @@ describe('Unit test of json rpc client', function() {
       }, dontCall);
     });
 
-    // FIXME: for unkown reason this tests hangs jstestdriver
     if (!window.isJsTestDriver) {
       it('should use WebSockets when available, fake response', function(done) {
 
         var dontCall = sinon.stub().throws();
 
-        // echo service doesn't reply with a proper JSON-RPC
-        // so we use the onmessage handler to check for succe
+        // Echo service doesn't reply with a proper JSON-RPC so we use the onmessage handler to
+        // check for success.
         var client = new $.JsonRpcClient({
           socketUrl: 'ws://echo.websocket.org/'
         });
@@ -308,11 +298,11 @@ describe('Unit test of json rpc client', function() {
         var oldOnopen = client._wsSocket.onopen;
         if (typeof oldOnopen === 'function') {
           client._wsSocket.onopen = function(event) {
-            oldOnopen(event); // chain in the already added onopen handler.
+            oldOnopen(event); // Chain in the already added onopen handler.
             client._wsSocket.send(MYJSON.stringify({
               jsonrpc: '2.0',
               result:  'baz',
-              id:      client._currentId - 1 // match the last requests id
+              id:      client._currentId - 1 // Match the last requests id
             }));
           };
         }
@@ -328,7 +318,6 @@ describe('Unit test of json rpc client', function() {
     console.log('No websocket support, skipping tests');
   }
 
-  // testWebsocketOnError
   it('shold handle errors from WebSocket', function(done) {
 
     // Mock a websocket-like object and patch it in!
@@ -359,7 +348,7 @@ describe('Unit test of json rpc client', function() {
     client.notify('foo', []);
   });
 
-  // testWebsocketJSONErrorPassthrough, issue 14
+  // Issue #14
   it(
     'should send along messages that fail JSON parsing to fallback message handler',
     function(done) {
@@ -374,7 +363,7 @@ describe('Unit test of json rpc client', function() {
         this.readyState = 1;
 
         this.send = function() {
-          // response is a fake json response
+          // Response is a fake json response
           this.onmessage({data: 'this is not JSON'});
         };
       };
@@ -394,8 +383,7 @@ describe('Unit test of json rpc client', function() {
     }
   );
 
-  // issue 14
-  // testWebsocketCallbackError
+  // Issue #14
   it('should not consume errors in callbacks when using WebSockets', function(done) {
     // Mock a websocket-like object and patch it in!
     window.WebSocket = function(url) {
@@ -408,7 +396,7 @@ describe('Unit test of json rpc client', function() {
       this.send = function(data) {
         var that = this;
         setTimeout(function() {
-          // fake a json response
+          // Fake a json response
           that.onmessage({
             data: MYJSON.stringify({
               jsonrpc: '2.0',
@@ -427,21 +415,20 @@ describe('Unit test of json rpc client', function() {
     });
 
     window.onerror = function(msg) {
-      // chrome prefixes with 'Uncaught Error:', Firefox with 'Error'
+      // Chromium prefixes with 'Uncaught Error:', Firefox with 'Error'
       expect(msg.split(':')[1]).to.equal(' Dude, not again');
       window.onerror = null;
       done();
     };
 
     client.call('foo', [], function() {
-      // ooops we have a bug in our callback!
+      // Ooops we have a bug in our callback!
       throw new Error('Dude, not again');
     }, dontCall);
 
   });
 
-  // issue 11
-  // testWebsocketQueueing
+  // Issue #11
   it('should queue calls until ws opens', function() {
     // Mock a websocket-like object and patch it in!
     var send = sinon.spy();
@@ -469,19 +456,18 @@ describe('Unit test of json rpc client', function() {
     var noop = function() {};
     var dontCall = sinon.stub().throws();
 
-    // send two requests, then "open" the websocket
+    // Send two requests, then "open" the websocket
     client.call('foo', [], noop, dontCall);
     client.call('foo', [], noop, dontCall);
 
-    // opne socket *after*, both should be queued
+    // Open socket *after*, both should be queued
     client._wsSocket._open();
 
     expect(send.calledTwice).to.be.true;
 
   });
 
-  // issue 11
-  // testWebsocketQueueingWithBatching
+  // Issue #11
   it('should queue calls until ws opens, even with batching', function(done) {
     // Mock a websocket-like object and patch it in!
     window.WebSocket = function() {
@@ -498,7 +484,7 @@ describe('Unit test of json rpc client', function() {
       var that = this;
       this.send = function(data) {
         setTimeout(function() {
-          // fake a json response
+          // Fake a json response
           that.onmessage({
             data: MYJSON.stringify({
               jsonrpc: '2.0',
@@ -517,10 +503,10 @@ describe('Unit test of json rpc client', function() {
       onerror: dontCall,
     });
 
-    // batch a request before ws is opened
+    // Batch a request before ws is opened
     var success = sinon.spy();
     client.batch(function(batch) {
-      // send two requests, then "open" the websocket
+      // Send two requests, then "open" the websocket
       batch.call('foo', [], success, dontCall);
       batch.call('foo', [], success, dontCall);
       batch.call('foo', [], success, dontCall);
@@ -530,12 +516,12 @@ describe('Unit test of json rpc client', function() {
       done();
     }, dontCall);
 
-    // finally open the socket
+    // Finally open the socket.
     client._wsSocket._open();
 
   });
 
-    // test headers see issue #21
+  // Issue #21
   it('should pass extra headers to the $.ajax', function(done) {
 
     var client = new $.JsonRpcClient({
@@ -551,7 +537,7 @@ describe('Unit test of json rpc client', function() {
 
   });
 
-  //see issue #20
+  // Issue #20
   it('should return a jQuery Promise on "call"', function() {
     var client = new $.JsonRpcClient({ajaxUrl: '/giveme404'});
 
@@ -561,7 +547,7 @@ describe('Unit test of json rpc client', function() {
 
   });
 
-  //see issue #20
+  // Issue #20
   it('should return null on "call" when WebSockets are used', function() {
 
     window.WebSocket = function() {
@@ -587,12 +573,12 @@ describe('Unit test of json rpc client', function() {
       $.toJSON    = function() {};
       $.parseJSON = function() {};
 
-      //Kill JSON
+      // Kill JSON
       window.JSON = null;
 
       var client = new $.JsonRpcClient({ajaxUrl: '/rpc'});
 
-      window.JSON = MYJSON; //restore again, since chaijs depends on it!
+      window.JSON = MYJSON; // Restore again, since chaijs depends on it!
 
       expect(client.JSON.stringify).to.be.equal($.toJSON);
       expect(client.JSON.parse).to.be.equal($.parseJSON);
