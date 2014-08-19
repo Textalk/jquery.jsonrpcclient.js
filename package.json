@@ -4,18 +4,20 @@
   "description": "JSON-RPC 2.0 Client for HTTP and WebSocket backend",
   "main": "jquery.jsonrpcclient.js",
   "scripts": {
-    "test": "rm -fr coverage && karma start --single-run --browsers PhantomJS test/unit.conf.js && find coverage/ -name lcov.info -print0 | xargs -0 cat | ./node_modules/coveralls/bin/coveralls.js"
+    "test": "rm -fr coverage && ./node_modules/karma/bin/karma start --single-run --browsers PhantomJS test/unit.conf.js && ./node_modules/.bin/jscs jquery.jsonrpcclient.js && ./node_modules/.bin/jscs test/unit/tests.js && find coverage/ -name lcov.info -print0 | xargs -0 cat | ./node_modules/coveralls/bin/coveralls.js"
   },
   "author": "Textalk AB http://textalk.se/",
   "license": "MIT",
   "devDependencies": {
-    "karma": "~0.10.9",
+    "karma": "~0.12.21",
     "karma-mocha": "~0.1.1",
     "karma-chai-sinon": "~0.1.1",
     "jquery": "~2.1.0",
     "karma-coverage": "~0.1.5",
     "coveralls": "~2.8.0",
     "mocha-lcov-reporter": "0.0.1",
-    "karma-growler-reporter": "0.0.1"
+    "karma-growler-reporter": "0.0.1",
+    "jscs": "~1.5.9",
+    "karma-phantomjs-launcher": "^0.1.4"
   }
 }
