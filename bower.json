@@ -9,7 +9,7 @@
   "main": "jquery.jsonrpcclient.js",
   "ignore": [
     ".jshintrc",
-    "**/*.txt"
+    ".jscs.json"
   ],
   "dependencies": {
     "jquery": ">=1.5"
