@@ -123,29 +123,38 @@
       cache      : false,
       headers    : this.options.headers,
       xhrFields  : this.options.xhrFields,
-
-      success    : function(data) {
-        if ('error' in data) {
-          errorCb(data.error);
-        } else {
-          successCb(data.result);
-        }
-      },
-
-      // JSON-RPC Server could return non-200 on error
-      error    : function(jqXHR, textStatus, errorThrown) {
-        try {
-          var response = self.JSON.parse(jqXHR.responseText);
-          if ('console' in window) { console.log(response); }
-
-          errorCb(response.error);
-        }
-        catch (err) {
-          // Perhaps the responseText wasn't really a jsonrpc-error.
-          errorCb({error: jqXHR.responseText});
-        }
-      }
-    });
+    })
+    .then(
+        function(data, textStatus, jqXHR) {
+            var checkDeferred = new $.Deferred; 
+            if ('error' in data) {
+              errorCb(data.error);
+              checkDeferred.reject(data, 'error', jqXHR);
+            } else {
+              successCb(data.result);
+              checkDeferred.resolve(data, textStatus, jqXHR);
+             }
+           return checkDeferred.promise();
+         },
+         
+        // JSON-RPC Server could return non-200 on error
+        function(jqXHR, textStatus, errorThrown) {
+            var errorDeferred = new $.Deferred;
+            
+          try {
+              var response = self.JSON.parse(jqXHR.responseText);
+              if ('console' in window) { console.log(response); }
+              errorCb(response.error);
+              errorDeferred.reject(response.error, textStatus, errorThrown);
+           }
+            catch (err) {
+            // Perhaps the responseText wasn't really a jsonrpc-error.
+            var errorObj = {error: jqXHR.responseText}; 
+            errorCb(errorObj);
+            errorDeferred.reject(errorObj, textStatus, errorThrown);
+           }
+           return errorDeferred.promise();
+        });
 
     return deferred;
   };
