@@ -1,6 +1,6 @@
 {
   "name": "jquery-jsonrpcclient",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "JSON-RPC 2.0 Client for HTTP and WebSocket backend",
   "main": "jquery.jsonrpcclient.js",
   "scripts": {
