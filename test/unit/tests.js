@@ -615,7 +615,7 @@ describe('Unit test of json rpc client', function() {
 
   });
 
-  it.only('should clear any timeout when we get a response', function(done) {
+  it('should clear any timeout when we get a response', function(done) {
 
     window.WebSocket = function() {
       this.onopen     = null;
