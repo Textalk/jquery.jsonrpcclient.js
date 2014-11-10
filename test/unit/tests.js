@@ -348,12 +348,11 @@ describe('Unit test of json rpc client', function() {
     client.notify('foo', []);
   });
 
-
   it('shold should fall back to AJAX if it can not open the WebSocket.', function() {
 
     // Mock a websocket-like object and patch it in!
     // cleanup is done in beforeEach and afterEach
-    window.WebSocket = function(url) {
+    window.WebSocket = function() {
       throw new Exception('Give up!');
     };
 
@@ -366,8 +365,6 @@ describe('Unit test of json rpc client', function() {
     // jquery deffered object when using ajax
     expect(client.notify('foo', [])).to.not.be.null;
   });
-
-
 
   // Issue #14
   it(
@@ -547,7 +544,7 @@ describe('Unit test of json rpc client', function() {
 
     var client = new $.JsonRpcClient({
       ajaxUrl: '/echoheaders',
-      headers: {'Roadkill-Quality':'high'}
+      headers: {'Roadkill-Quality': 'high'}
     });
     var failure = sinon.stub().throws('Failure should not be called!');
 
