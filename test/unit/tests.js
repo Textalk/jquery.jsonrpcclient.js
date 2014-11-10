@@ -526,7 +526,7 @@ describe('Unit test of json rpc client', function() {
 
     var client = new $.JsonRpcClient({
       ajaxUrl: '/echoheaders',
-      headers: {'Roadkill-Quality':'high'}
+      headers: {'Roadkill-Quality': 'high'}
     });
     var failure = sinon.stub().throws('Failure should not be called!');
 
@@ -587,4 +587,72 @@ describe('Unit test of json rpc client', function() {
 
   });
 
+  it('should timeout a websocket call that does not get a response', function(done) {
+
+    window.WebSocket = function() {
+      this.onopen     = null;
+      this.onmessage  = null;
+      this.onclose    = null;
+      this.onerror    = null;
+      this.send = function() {};
+    };
+
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/',
+      timeout: 10
+    });
+
+    var dontCall = sinon.stub().throws();
+    var fail = sinon.stub();
+
+    client.call('foo', [], dontCall, fail);
+    expect(fail).to.not.have.been.called;
+
+    setTimeout(function() {
+      expect(fail).to.have.been.called;
+      done();
+    }, 15);
+
+  });
+
+  it.only('should clear any timeout when we get a response', function(done) {
+
+    window.WebSocket = function() {
+      this.onopen     = null;
+      this.onmessage  = null;
+      this.onclose    = null;
+      this.onerror    = null;
+      this.send = function(data) {
+        var that = this;
+
+        setTimeout(function() {
+          // Fake a json response
+          that.onmessage({
+            data: MYJSON.stringify({
+              jsonrpc: '2.0',
+              id:      MYJSON.parse(data).id,
+              result:  'foobar'
+            })
+          });
+        }, 0);
+      };
+    };
+
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/',
+      timeout: 10
+    });
+
+    var dontCall = sinon.stub().throws();
+    var success = sinon.stub();
+
+    client.call('foo', [], success, dontCall);
+    expect(success).to.not.have.been.called;
+
+    setTimeout(function() {
+      expect(success).to.have.been.called;
+      done();
+    }, 20);
+
+  });
 });

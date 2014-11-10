@@ -35,6 +35,9 @@
    *                           Or, it could return null if no socket is available.
    *                           The returned instance must have readyState <= 1, and if less than 1,
    *                           react to onopen binding.
+   *                timeout    (optional) A number of ms to wait before timing out and failing a
+   *                           call. If specified a setTimeout will be used to keep track of calls
+   *                           made through a websocket.
    */
   var JsonRpcClient = function(options) {
     var self = this;
@@ -123,6 +126,7 @@
       cache      : false,
       headers    : this.options.headers,
       xhrFields  : this.options.xhrFields,
+      timeout    : this.options.timeout,
 
       success    : function(data) {
         if ('error' in data) {
@@ -259,6 +263,11 @@
   JsonRpcClient.prototype._wsCall = function(socket, request, successCb, errorCb) {
     var requestJson = this.JSON.stringify(request);
 
+    // Setup callbacks.  If there is an id, this is a call and not a notify.
+    if ('id' in request && typeof successCb !== 'undefined') {
+      this._wsCallbacks[request.id] = {successCb: successCb, errorCb: errorCb};
+    }
+
     if (socket.readyState < 1) {
 
       // Queue request
@@ -274,20 +283,29 @@
           self.options.onopen(event);
 
           // Send queued requests.
+          var timeout = self.options.timeout;
+          var request;
           for (var i = 0; i < self._wsRequestQueue.length; i++) {
-            socket.send(self._wsRequestQueue[i]);
+            request = self._wsRequestQueue[i];
+
+            // Do we use timeouts, and if so, is it a call?
+            if (timeout && self._wsCallbacks[request.id]) {
+              self._wsCallbacks[request.id].timeout = self._createTimeout(request.id);
+            }
+            socket.send(request);
           }
           self._wsRequestQueue = [];
         };
       }
     } else {
+
+      // Do we use timeouts, and if so, is it a call?
+      if (this.options.timeout && this._wsCallbacks[request.id]) {
+        this._wsCallbacks[request.id].timeout = this._createTimeout(request.id);
+      }
+
       // We have a socket and it should be ready to send on.
       socket.send(requestJson);
-    }
-
-    // Setup callbacks.  If there is an id, this is a call and not a notify.
-    if ('id' in request && typeof successCb !== 'undefined') {
-      this._wsCallbacks[request.id] = {successCb: successCb, errorCb: errorCb};
     }
   };
 
@@ -319,6 +337,11 @@
         // Get the success callback.
         var successCb = this._wsCallbacks[response.id].successCb;
 
+        // Clear any timeout
+        if (this._wsCallbacks[response.id].timeout) {
+          clearTimeout(this._wsCallbacks[response.id].timeout);
+        }
+
         // Delete the callback from the storage.
         delete this._wsCallbacks[response.id];
 
@@ -343,6 +366,22 @@
 
     // If we get here it's an invalid JSON-RPC response, pass to fallback message handler.
     this.options.onmessage(event);
+  };
+
+  /**
+   * Create a timeout for this request
+   */
+  JsonRpcClient.prototype._createTimeout = function(id) {
+    if (this.options.timeout) {
+      var that = this;
+      return setTimeout(function() {
+        if (that._wsCallbacks[id]) {
+          var errorCb = that._wsCallbacks[id].errorCb;
+          delete that._wsCallbacks[id];
+          errorCb('Request timed out.');
+        }
+      }, this.options.timeout);
+    }
   };
 
   /************************************************************************************************
