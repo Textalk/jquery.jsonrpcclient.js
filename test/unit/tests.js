@@ -526,7 +526,7 @@ describe('Unit test of json rpc client', function() {
 
     var client = new $.JsonRpcClient({
       ajaxUrl: '/echoheaders',
-      headers: {'Roadkill-Quality':'high'}
+      headers: {'Roadkill-Quality': 'high'}
     });
     var failure = sinon.stub().throws('Failure should not be called!');
 
@@ -585,6 +585,87 @@ describe('Unit test of json rpc client', function() {
 
     });
 
+  });
+
+  it('should fail all pending calls on websocket error', function() {
+    // Mock a websocket-like object and patch it in!
+    window.WebSocket = function() {
+      this.onopen    = null;
+      this.onmessage = null;
+      this.onclose   = null;
+      this.onerror   = null;
+      this.readyState = 0;
+
+      this._open = function() {
+        this.readyState = 1;
+        this.onopen && this.onopen();
+      };
+      this.send = function() {};
+    };
+
+    var dontCall = sinon.stub().throws();
+    var onerror = sinon.stub();
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/',
+      ajaxUrl: 'foobar',
+      onmessage: dontCall,
+      onerror: onerror,
+      onclose: dontCall
+    });
+
+    var fail = sinon.stub();
+
+    client.call('foo', [], dontCall, fail);
+    client.call('foo', [], dontCall, fail);
+    client.call('foo', [], dontCall, fail);
+
+    // Trigger Error
+    var ev = sinon.spy();
+    client._wsSocket.onerror(ev);
+
+    // Check that all have failed.
+    expect(fail).to.have.been.calledThrice;
+    expect(onerror).to.have.been.calledOnce;
+  });
+
+  it('should fail all pending calls on websocket close', function() {
+    // Mock a websocket-like object and patch it in!
+    window.WebSocket = function() {
+      this.onopen    = null;
+      this.onmessage = null;
+      this.onclose   = null;
+      this.onerror   = null;
+      this.readyState = 0;
+
+      this._open = function() {
+        this.readyState = 1;
+        this.onopen && this.onopen();
+      };
+      this.send = function() {};
+    };
+
+    var dontCall = sinon.stub().throws();
+    var onclose = sinon.stub();
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/',
+      ajaxUrl: 'foobar',
+      onmessage: dontCall,
+      onerror: dontCall,
+      onclose: onclose
+    });
+
+    var fail = sinon.stub();
+
+    client.call('foo', [], dontCall, fail);
+    client.call('foo', [], dontCall, fail);
+    client.call('foo', [], dontCall, fail);
+
+    // Trigger Error
+    client._wsSocket.onclose();
+
+    // Check that all have failed.
+    expect(fail).to.have.been.calledThrice;
+    expect(onclose).to.have.been.calledOnce;
   });
 
 });
