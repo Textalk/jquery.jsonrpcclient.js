@@ -54,7 +54,16 @@
     // Declare an instance version of the onmessage callback to wrap 'this'.
     this.wsOnMessage = function(event) { self._wsOnMessage(event); };
 
-    // queue for ws request sent *before* ws is open.
+    /// Holding the WebSocket on default getsocket.
+    this._wsSocket = null;
+
+    /// Object <id>: { success_cb: cb, error_cb: cb }
+    this._wsCallbacks = {};
+
+    /// The next JSON-RPC request id.
+    this._currentId = 1;
+
+    //queue for ws request sent *before* ws is open.
     this._wsRequestQueue = [];
 
     if (!window.JSON && $ && $.toJSON) {
@@ -67,15 +76,6 @@
     }
 
   };
-
-  /// Holding the WebSocket on default getsocket.
-  JsonRpcClient.prototype._wsSocket = null;
-
-  /// Object <id>: { successCb: cb, errorCb: cb }
-  JsonRpcClient.prototype._wsCallbacks = {};
-
-  /// The next JSON-RPC request id.
-  JsonRpcClient.prototype._currentId = 1;
 
   /**
    * @fn call
