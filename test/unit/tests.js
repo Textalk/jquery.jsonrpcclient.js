@@ -610,7 +610,10 @@ describe('Unit test of json rpc client', function() {
     expect(fail).to.not.have.been.called;
 
     setTimeout(function() {
-      expect(fail).to.have.been.called;
+      expect(fail).to.have.been.calledWith({
+        code: -32603,
+        message: 'Call timed out.'
+      });
       done();
     }, 15);
   });
