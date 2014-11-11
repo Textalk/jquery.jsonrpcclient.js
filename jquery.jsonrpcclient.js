@@ -234,8 +234,14 @@
     if (this.options.socketUrl === null || !('WebSocket' in window)) { return null; }
 
     if (this._wsSocket === null || this._wsSocket.readyState > 1) {
-      // No socket, or dying socket, let's get a new one.
-      this._wsSocket = new WebSocket(this.options.socketUrl);
+
+      try {
+        // No socket, or dying socket, let's get a new one.
+        this._wsSocket = new WebSocket(this.options.socketUrl);
+      } catch (e) {
+        // This can happen if the server is down, or malconfigured.
+        return null;
+      }
 
       // Set up onmessage handler.
       this._wsSocket.onmessage = onmessageCb;
