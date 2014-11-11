@@ -246,11 +246,12 @@
       // Set up onmessage handler.
       this._wsSocket.onmessage = onmessageCb;
 
+      var that = this;
       // Set up onclose handler.
-      this._wsSocket.onclose = this.options.onclose;
+      this._wsSocket.onclose = function(ev) { that._wsOnClose(ev); };
 
       // Set up onerror handler.
-      this._wsSocket.onerror = this.options.onerror;
+      this._wsSocket.onerror = function(ev) { that._wsOnError(ev); };
     }
 
     return this._wsSocket;
@@ -349,6 +350,42 @@
 
     // If we get here it's an invalid JSON-RPC response, pass to fallback message handler.
     this.options.onmessage(event);
+  };
+
+  /**
+   * Internal WebSocket error handler.
+   * Will execute all unresolved calls immideatly.
+   **/
+  JsonRpcClient.prototype._wsOnError = function(event) {
+    this._failAllCalls('Socket errored.');
+    this.options.onerror(event);
+  };
+
+  /**
+   * Internal WebSocket close handler.
+   * Will execute all unresolved calls immideatly.
+   **/
+  JsonRpcClient.prototype._wsOnClose = function(event) {
+    this._failAllCalls('Socket closed.');
+    this.options.onclose(event);
+  };
+
+  /**
+   * Execute error handler on all pending calls.
+   */
+  JsonRpcClient.prototype._failAllCalls = function(error) {
+    for (var key in this._wsCallbacks) {
+      if (this._wsCallbacks.hasOwnProperty(key)) {
+        // Get the error callback.
+        var errorCb = this._wsCallbacks[key].errorCb;
+
+        // Run callback with the error object as parameter.
+        errorCb(error);
+      }
+    }
+
+    // Throw 'em away
+    this._wsCallbacks = {};
   };
 
   /************************************************************************************************
