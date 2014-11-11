@@ -51,7 +51,7 @@
       onclose     : noop, ///< Optional onclose-handler for WebSocket.
       onerror     : noop, ///< Optional onerror-handler for WebSocket.
       /// Custom socket supplier for using an already existing socket
-      getSocket   : function (onmessageCb) { return self._getSocket(onmessageCb); }
+      getSocket   : function(onmessageCb) { return self._getSocket(onmessageCb); }
     }, options);
 
     // Declare an instance version of the onmessage callback to wrap 'this'.
