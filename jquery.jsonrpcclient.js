@@ -378,10 +378,7 @@
         if (that._wsCallbacks[id]) {
           var errorCb = that._wsCallbacks[id].errorCb;
           delete that._wsCallbacks[id];
-          errorCb({
-            code: -32603,
-            message: 'Call timed out.'
-          });
+          errorCb('Call timed out.');
         }
       }, this.options.timeout);
     }
