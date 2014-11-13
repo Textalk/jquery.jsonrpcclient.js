@@ -3,7 +3,7 @@
 // https://github.com/cjohansen/Sinon.JS/issues/319
   if (navigator.userAgent.indexOf('PhantomJS') !== -1 ||
       navigator.userAgent.indexOf('Iceweasel') !== -1) {
-    window.ProgressEvent = function (type, params) {
+    window.ProgressEvent = function(type, params) {
       params = params || {};
 
       this.lengthComputable = params.lengthComputable || false;
@@ -18,7 +18,8 @@ var MYJSON = JSON;
 describe('Unit test of json rpc client', function() {
 
   // Setup fake xhr server
-  var server, savedWebSocket;
+  var server;
+  var savedWebSocket;
   beforeEach(function() {
     server = sinon.fakeServer.create();
     savedWebSocket = window.WebSocket; // Some test override the ws
@@ -684,6 +685,74 @@ describe('Unit test of json rpc client', function() {
     // Check that all have failed.
     expect(fail).to.have.been.calledThrice;
     expect(onclose).to.have.been.calledOnce;
+  });
+
+  it('should timeout a websocket call that does not get a response', function(done) {
+
+    window.WebSocket = function() {
+      this.onopen     = null;
+      this.onmessage  = null;
+      this.onclose    = null;
+      this.onerror    = null;
+      this.send = function() {};
+    };
+
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/',
+      timeout: 10
+    });
+
+    var dontCall = sinon.stub().throws();
+    var fail = sinon.stub();
+
+    client.call('foo', [], dontCall, fail);
+    expect(fail).to.not.have.been.called;
+
+    setTimeout(function() {
+      expect(fail).to.have.been.calledWith('Call timed out.');
+      done();
+    }, 15);
+  });
+
+  it('should clear any timeout when we get a response', function(done) {
+
+    window.WebSocket = function() {
+      this.onopen     = null;
+      this.onmessage  = null;
+      this.onclose    = null;
+      this.onerror    = null;
+      this.send = function(data) {
+        var that = this;
+
+        setTimeout(function() {
+          // Fake a json response
+          that.onmessage({
+            data: MYJSON.stringify({
+              jsonrpc: '2.0',
+              id:      MYJSON.parse(data).id,
+              result:  'foobar'
+            })
+          });
+        }, 0);
+      };
+    };
+
+    var client = new $.JsonRpcClient({
+      socketUrl: 'ws://localhost/',
+      timeout: 70
+    });
+
+    var dontCall = sinon.stub().throws();
+    var success = sinon.spy();
+
+    client.call('foo', [], success, dontCall);
+    //expect(success).to.not.have.been.called;
+
+    setTimeout(function() {
+      expect(success).to.have.been.called;
+      done();
+    }, 100);
+
   });
 
 });
