@@ -67,6 +67,7 @@ $.JsonRpcClient Options
 
 `getSocket` **function** Custom socket supplier for using an already existing socket.
 
+`timeout` **integer** Optional sets timeout for calls in ms. Works with WebSocket as well as AJAX.
 
 WebSocket
 ---------

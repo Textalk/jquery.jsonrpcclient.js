@@ -1,6 +1,6 @@
 {
   "name": "jquery-jsonrpcclient",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "JSON-RPC 2.0 Client for HTTP and WebSocket backend",
   "authors": [
     "Textalk AB http://textalk.se/"
