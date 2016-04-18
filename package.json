@@ -1,6 +1,6 @@
 {
   "name": "jquery-jsonrpcclient",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "JSON-RPC 2.0 Client for HTTP and WebSocket backend",
   "main": "jquery.jsonrpcclient.js",
   "scripts": {
@@ -8,6 +8,9 @@
   },
   "author": "Textalk AB http://textalk.se/",
   "license": "MIT",
+  "dependencies": {
+    "jquery": ">=1.5"
+  },
   "devDependencies": {
     "karma": "~0.12.21",
     "karma-mocha": "~0.1.1",
