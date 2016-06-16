@@ -618,4 +618,4 @@
 
   $.JsonRpcClient = JsonRpcClient;
 
-})(this.jQuery);
+})(jQuery);
